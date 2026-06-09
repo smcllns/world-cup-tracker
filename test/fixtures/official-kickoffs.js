@@ -141,3 +141,59 @@ export const OFFICIAL_VENUE = {
   95: 'mercedes', 96: 'bcplace', 97: 'gillette', 98: 'sofi', 99: 'hardrock',
   100: 'arrowhead', 101: 'att', 102: 'mercedes', 103: 'hardrock', 104: 'metlife',
 }
+
+// Official knockout bracket: the two team-slot labels for each knockout match.
+// Validated 2026-06-09 against the Wikipedia knockout-stage bracket (group-
+// position slots, third-place routing, and Winner/Loser-Match progression).
+export const OFFICIAL_KO_SLOTS = {
+  73: ['Runner-up Group A', 'Runner-up Group B'],
+  74: ['Winner Group E', '3rd A/B/C/D/F'],
+  75: ['Winner Group F', 'Runner-up Group C'],
+  76: ['Winner Group C', 'Runner-up Group F'],
+  77: ['Winner Group I', '3rd C/D/F/G/H'],
+  78: ['Runner-up Group E', 'Runner-up Group I'],
+  79: ['Winner Group A', '3rd C/E/F/H/I'],
+  80: ['Winner Group L', '3rd E/H/I/J/K'],
+  81: ['Winner Group D', '3rd B/E/F/I/J'],
+  82: ['Winner Group G', '3rd A/E/H/I/J'],
+  83: ['Runner-up Group K', 'Runner-up Group L'],
+  84: ['Winner Group H', 'Runner-up Group J'],
+  85: ['Winner Group B', '3rd E/F/G/I/J'],
+  86: ['Winner Group J', 'Runner-up Group H'],
+  87: ['Winner Group K', '3rd D/E/I/J/L'],
+  88: ['Runner-up Group D', 'Runner-up Group G'],
+  89: ['Winner Match 74', 'Winner Match 77'],
+  90: ['Winner Match 73', 'Winner Match 75'],
+  91: ['Winner Match 76', 'Winner Match 78'],
+  92: ['Winner Match 79', 'Winner Match 80'],
+  93: ['Winner Match 83', 'Winner Match 84'],
+  94: ['Winner Match 81', 'Winner Match 82'],
+  95: ['Winner Match 86', 'Winner Match 88'],
+  96: ['Winner Match 85', 'Winner Match 87'],
+  97: ['Winner Match 89', 'Winner Match 90'],
+  98: ['Winner Match 93', 'Winner Match 94'],
+  99: ['Winner Match 91', 'Winner Match 92'],
+  100: ['Winner Match 95', 'Winner Match 96'],
+  101: ['Winner Match 97', 'Winner Match 98'],
+  102: ['Winner Match 99', 'Winner Match 100'],
+  103: ['Loser Match 101', 'Loser Match 102'],
+  104: ['Winner Match 101', 'Winner Match 102'],
+}
+
+// Official group draw (Final Draw, Dec 5 2025; playoff winners resolved).
+// Validated 2026-06-09 against NBC Sports' published group draw. Team names use
+// the exact spelling in src/data/teams.js.
+export const OFFICIAL_GROUPS = {
+  A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
+  B: ['Canada', 'Bosnia & Herzegovina', 'Qatar', 'Switzerland'],
+  C: ['Brazil', 'Morocco', 'Haiti', 'Scotland'],
+  D: ['USA', 'Paraguay', 'Australia', 'Türkiye'],
+  E: ['Germany', 'Curaçao', 'Ivory Coast', 'Ecuador'],
+  F: ['Netherlands', 'Japan', 'Sweden', 'Tunisia'],
+  G: ['Belgium', 'Egypt', 'Iran', 'New Zealand'],
+  H: ['Spain', 'Cape Verde', 'Saudi Arabia', 'Uruguay'],
+  I: ['France', 'Senegal', 'Iraq', 'Norway'],
+  J: ['Argentina', 'Algeria', 'Austria', 'Jordan'],
+  K: ['Portugal', 'DR Congo', 'Uzbekistan', 'Colombia'],
+  L: ['England', 'Croatia', 'Ghana', 'Panama'],
+}

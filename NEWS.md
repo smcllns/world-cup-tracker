@@ -6,6 +6,12 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-06-09
 
+- **Bracket, draw & timezone validation:** verified the knockout bracket wiring
+  (all 32 group-position slots, third-place routing, and Winner/Loser-Match
+  progression) against the Wikipedia bracket; the group draw against NBC Sports;
+  and the team→home-timezone map (valid IANA zones, full coverage). All correct —
+  no data changes. Froze the official bracket slots + group draw into the fixture
+  and added tests for them plus timezone validity. Suite now 75 tests.
 - **Venue audit + consistency tests:** verified all 104 host venues against
   authoritative sources (Wikipedia knockout cities; Yahoo + MLSsoccer by-stadium
   for the group stage) — all correct (a Yahoo article mislabeled Uruguay v Spain

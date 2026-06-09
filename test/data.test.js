@@ -3,7 +3,13 @@ import { MATCHES, STAGE_ORDER } from '../src/data/matches.js'
 import { VENUES } from '../src/data/venues.js'
 import { TEAMS, ALL_TEAMS } from '../src/data/teams.js'
 import { BRACKET } from '../src/utils/bracket.js'
-import { OFFICIAL_ET, OFFICIAL_VENUE } from './fixtures/official-kickoffs.js'
+import {
+  OFFICIAL_ET,
+  OFFICIAL_VENUE,
+  OFFICIAL_KO_SLOTS,
+  OFFICIAL_GROUPS,
+} from './fixtures/official-kickoffs.js'
+import { TEAM_TIMEZONES } from '../src/data/teamTimezones.js'
 
 // Render a kickoff instant as Eastern Time 'YYYY-MM-DD HH:mm' (24h), so it can
 // be compared to the authoritative fixture regardless of how ko is stored.
@@ -64,6 +70,13 @@ describe('schedule data integrity', () => {
     expect(ALL_TEAMS).toHaveLength(48)
   })
 
+  it('matches the official group draw', () => {
+    for (const g of Object.keys(OFFICIAL_GROUPS)) {
+      const ours = TEAMS[g].map((t) => t.name).sort()
+      expect(ours, `group ${g}`).toEqual([...OFFICIAL_GROUPS[g]].sort())
+    }
+  })
+
   it('has 16 venues', () => {
     expect(Object.keys(VENUES)).toHaveLength(16)
   })
@@ -83,6 +96,26 @@ describe('schedule data integrity', () => {
 
   it('exposes stages in tournament order', () => {
     expect(STAGE_ORDER).toEqual(['Group', 'R32', 'R16', 'QF', 'SF', '3rd', 'Final'])
+  })
+})
+
+describe('team home timezones', () => {
+  it('maps every qualified team (and nothing else) to ≥1 home zone', () => {
+    expect(Object.keys(TEAM_TIMEZONES).sort()).toEqual([...ALL_TEAMS].sort())
+    expect(Object.values(TEAM_TIMEZONES).every((z) => z.length > 0)).toBe(true)
+  })
+
+  it('uses only valid IANA timezones', () => {
+    const bad = []
+    for (const [team, zones] of Object.entries(TEAM_TIMEZONES))
+      for (const z of zones) {
+        try {
+          new Intl.DateTimeFormat('en-US', { timeZone: z })
+        } catch {
+          bad.push(`${team}: ${z}`)
+        }
+      }
+    expect(bad).toEqual([])
   })
 })
 
@@ -130,6 +163,13 @@ describe('schedule internal consistency', () => {
       }
     }
     expect(tooClose).toEqual([])
+  })
+
+  it('every knockout match has the official bracket slots (group routing + progression)', () => {
+    const wrong = MATCHES.filter((m) => m.stage !== 'Group')
+      .filter((m) => [m.t1, m.t2].sort().join('|') !== [...OFFICIAL_KO_SLOTS[m.num]].sort().join('|'))
+      .map((m) => `M${m.num}: [${m.t1} / ${m.t2}] ≠ [${OFFICIAL_KO_SLOTS[m.num].join(' / ')}]`)
+    expect(wrong).toEqual([])
   })
 
   it('every "Winner/Loser Match N" reference points to an existing earlier match', () => {

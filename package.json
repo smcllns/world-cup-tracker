@@ -1,0 +1,20 @@
+{
+  "name": "world-cup-viewer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "2026 FIFA World Cup schedule viewer with local timezone, broadcast info, venues, and filtering",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}

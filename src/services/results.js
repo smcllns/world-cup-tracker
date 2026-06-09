@@ -1,0 +1,115 @@
+// Live(-ish) results from OpenFootball — free, public-domain JSON on GitHub,
+// no API key and CORS-friendly, so it works straight from the browser.
+// Updated by commits during the tournament (typically same-day / post-match)
+// rather than minute-by-minute, which suits a frontend-only app.
+//
+// Matching strategy (OpenFootball match -> our static schedule):
+//   • Round of 32..Semifinal carry the official FIFA `num` (73–102) -> key by num.
+//   • Third-place & Final have no num -> key by round name.
+//   • Group matches have no num -> key by the (order-independent) team pair.
+// As knockout teams resolve, OpenFootball replaces "2A"/"W73" placeholders with
+// real team names, so we also use the feed to fill in the bracket.
+
+import { FLAG_BY_TEAM } from '../data/teams.js'
+
+export const RESULTS_SOURCE = {
+  name: 'OpenFootball',
+  url: 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json',
+  homepage: 'https://github.com/openfootball/worldcup.json',
+}
+
+// OpenFootball spellings that differ from ours, mapped to our canonical names.
+const ALIASES = {
+  'Czech Republic': 'Czechia',
+  Turkey: 'Türkiye',
+}
+
+export function normalizeTeam(name) {
+  if (!name) return name
+  return ALIASES[name] || name
+}
+
+// A "real" team is one of the 48 qualified sides (not a placeholder like "2A").
+export function isRealTeam(name) {
+  return Boolean(FLAG_BY_TEAM[normalizeTeam(name)])
+}
+
+function pairKey(a, b) {
+  return 'pair:' + [a, b].sort().join('|')
+}
+
+// Key for an OpenFootball match record.
+function apiKey(m) {
+  const round = m.round || ''
+  if (round.startsWith('Matchday')) return pairKey(normalizeTeam(m.team1), normalizeTeam(m.team2))
+  if (round === 'Match for third place') return 'stage:3rd'
+  if (round === 'Final') return 'stage:Final'
+  if (m.num != null) return 'num:' + m.num
+  return null
+}
+
+// Matching key for one of our schedule matches.
+export function matchKey(match) {
+  if (match.stage === 'Group') return pairKey(normalizeTeam(match.t1), normalizeTeam(match.t2))
+  if (match.stage === '3rd') return 'stage:3rd'
+  if (match.stage === 'Final') return 'stage:Final'
+  return 'num:' + match.num
+}
+
+// OpenFootball score shape: { ft: [home, away], ht: [...], et: [...], p: [...] }.
+function parseScore(score) {
+  if (!score) return null
+  const ft = Array.isArray(score.ft) ? score.ft : Array.isArray(score) ? score : null
+  if (!ft || ft.length < 2 || ft[0] == null || ft[1] == null) return null
+  const out = { ft: [Number(ft[0]), Number(ft[1])] }
+  if (Array.isArray(score.p) && score.p[0] != null) out.pens = [Number(score.p[0]), Number(score.p[1])]
+  if (Array.isArray(score.et) && score.et[0] != null) out.aet = true
+  return out
+}
+
+export async function fetchResults(signal) {
+  const res = await fetch(RESULTS_SOURCE.url, { signal, cache: 'no-store' })
+  if (!res.ok) throw new Error(`Results request failed (HTTP ${res.status})`)
+  const data = await res.json()
+  const map = new Map()
+  for (const m of data.matches || []) {
+    const key = apiKey(m)
+    if (!key) continue
+    map.set(key, {
+      home: normalizeTeam(m.team1),
+      away: normalizeTeam(m.team2),
+      score: parseScore(m.score),
+    })
+  }
+  return map
+}
+
+// Return a new matches array with API scores merged in and knockout placeholders
+// resolved to real teams where known. The static schedule is never mutated.
+export function applyResults(matches, map) {
+  if (!map || map.size === 0) return matches
+  return matches.map((m) => {
+    const rec = map.get(matchKey(m))
+    if (!rec) return m
+
+    if (m.stage === 'Group') {
+      if (!rec.score) return m
+      // Orient the score to our (t1, t2) ordering.
+      const ours = normalizeTeam(m.t1)
+      const ft = rec.home === ours ? rec.score.ft : [rec.score.ft[1], rec.score.ft[0]]
+      return { ...m, score: ft }
+    }
+
+    // Knockout: adopt real team names in the API's (home, away) order so the
+    // bracket fills in; the score (and pens) follow the same orientation.
+    const out = { ...m }
+    if (isRealTeam(rec.home)) out.t1 = rec.home
+    if (isRealTeam(rec.away)) out.t2 = rec.away
+    if (rec.score) {
+      out.score = rec.score.ft
+      if (rec.score.pens) out.pens = rec.score.pens
+      if (rec.score.aet) out.aet = true
+    }
+    return out
+  })
+}

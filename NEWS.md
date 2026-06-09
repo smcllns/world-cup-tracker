@@ -6,6 +6,10 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-06-09
 
+- **CI action upgrades:** bumped GitHub Actions to their Node-24 majors
+  (checkout v6, setup-node v6, configure-pages v6, upload-pages-artifact v5,
+  deploy-pages v5) ahead of GitHub forcing Node 20 actions to Node 24 on
+  2026-06-16.
 - **Hover for home-country kickoff times:** hovering a team in any match-context
   view (schedule, week, bracket, next-match bar, detail modal) shows when the
   game kicks off in that team's home-country local time. Countries spanning

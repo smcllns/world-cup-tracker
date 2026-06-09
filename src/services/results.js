@@ -67,6 +67,17 @@ function parseScore(score) {
   return out
 }
 
+// OpenFootball goal shape: { name, minute, score, penalty, owngoal }.
+function parseGoals(arr) {
+  if (!Array.isArray(arr)) return []
+  return arr.map((g) => ({
+    name: g.name || g.player || '',
+    minute: g.minute ?? g.offset ?? null,
+    penalty: Boolean(g.penalty),
+    og: Boolean(g.owngoal),
+  }))
+}
+
 export async function fetchResults(signal) {
   const res = await fetch(RESULTS_SOURCE.url, { signal, cache: 'no-store' })
   if (!res.ok) throw new Error(`Results request failed (HTTP ${res.status})`)
@@ -79,6 +90,8 @@ export async function fetchResults(signal) {
       home: normalizeTeam(m.team1),
       away: normalizeTeam(m.team2),
       score: parseScore(m.score),
+      g1: parseGoals(m.goals1),
+      g2: parseGoals(m.goals2),
     })
   }
   return map
@@ -94,14 +107,15 @@ export function applyResults(matches, map) {
 
     if (m.stage === 'Group') {
       if (!rec.score) return m
-      // Orient the score to our (t1, t2) ordering.
-      const ours = normalizeTeam(m.t1)
-      const ft = rec.home === ours ? rec.score.ft : [rec.score.ft[1], rec.score.ft[0]]
-      return { ...m, score: ft }
+      // Orient the score (and goals) to our (t1, t2) ordering.
+      const aligned = rec.home === normalizeTeam(m.t1)
+      const ft = aligned ? rec.score.ft : [rec.score.ft[1], rec.score.ft[0]]
+      const out = { ...m, score: ft, goals: aligned ? { t1: rec.g1, t2: rec.g2 } : { t1: rec.g2, t2: rec.g1 } }
+      return out
     }
 
     // Knockout: adopt real team names in the API's (home, away) order so the
-    // bracket fills in; the score (and pens) follow the same orientation.
+    // bracket fills in; the score, pens, and goals follow the same orientation.
     const out = { ...m }
     if (isRealTeam(rec.home)) out.t1 = rec.home
     if (isRealTeam(rec.away)) out.t2 = rec.away
@@ -109,6 +123,7 @@ export function applyResults(matches, map) {
       out.score = rec.score.ft
       if (rec.score.pens) out.pens = rec.score.pens
       if (rec.score.aet) out.aet = true
+      out.goals = { t1: rec.g1, t2: rec.g2 }
     }
     return out
   })

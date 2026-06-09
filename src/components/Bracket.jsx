@@ -3,11 +3,15 @@ import { VENUES } from '../data/venues.js'
 import { FLAG_BY_TEAM } from '../data/teams.js'
 import { BRACKET, matchesByNum } from '../utils/bracket.js'
 import { formatTime, tzAbbrev } from '../utils/time.js'
+import { useFollow } from '../context/follow.jsx'
+import { useDetail } from '../context/detail.js'
 
 function Side({ name }) {
   const flag = FLAG_BY_TEAM[name]
+  const { isFollowed } = useFollow()
+  const on = Boolean(flag) && isFollowed(name)
   return (
-    <div className="bx-side">
+    <div className={`bx-side${on ? ' followed' : ''}`}>
       <span className="bx-flag">{flag || '·'}</span>
       <span className={flag ? 'bx-team' : 'bx-tbd'}>{name}</span>
     </div>
@@ -15,6 +19,7 @@ function Side({ name }) {
 }
 
 function BracketMatch({ num, byNum, tz, hideScores }) {
+  const openDetail = useDetail()
   const m = byNum[num]
   if (!m) return null
   const venue = VENUES[m.venue]
@@ -25,7 +30,8 @@ function BracketMatch({ num, byNum, tz, hideScores }) {
   })
   const showScore = m.score && !hideScores
   return (
-    <div className="bx-match">
+    <div className="bx-match" role="button" tabIndex={0} onClick={() => openDetail(m)}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openDetail(m)}>
       <div className="bx-meta">
         <span>M{m.num}</span>
         <span>

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import App from '../src/App.jsx'
+import { FollowProvider } from '../src/context/follow.jsx'
 
 // Mock the results feed so mount doesn't hit the network.
 beforeEach(() => {
@@ -66,5 +67,46 @@ describe('App renders (smoke test)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Groups/ }))
     expect(screen.getByText('Group A')).toBeInTheDocument()
     expect(screen.getByText('Group L')).toBeInTheDocument()
+  })
+
+  it('opens the match-detail modal from a card', () => {
+    render(<App />)
+    fireEvent.click(screen.getAllByRole('button', { name: /Details/ })[0])
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    expect(within(dialog).getByText(/How to watch/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/Stadium local/)).toBeInTheDocument()
+  })
+
+  it('toggles the color theme', () => {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: /Toggle theme/ }))
+    expect(document.documentElement.dataset.theme).toBe('light')
+    fireEvent.click(screen.getByRole('button', { name: /Toggle theme/ }))
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+
+  it('shows a NextMatch countdown hero', () => {
+    render(<App />)
+    expect(screen.getByText(/Next match|Your next match|Live now/)).toBeInTheDocument()
+  })
+})
+
+describe('Follow teams', () => {
+  beforeEach(() => {
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ matches: [] }) }))
+    window.history.replaceState(null, '', '/')
+    localStorage.clear()
+  })
+
+  it('following a team reveals the My Teams filter', () => {
+    render(
+      <FollowProvider>
+        <App />
+      </FollowProvider>,
+    )
+    expect(screen.queryByRole('button', { name: /My Teams/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /^Follow / })[0])
+    expect(screen.getByRole('button', { name: /My Teams/ })).toBeInTheDocument()
   })
 })

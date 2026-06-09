@@ -5,11 +5,26 @@ import { STAGE_LABELS } from '../data/matches.js'
 import { US_BROADCAST } from '../data/broadcast.js'
 import { formatTime, tzAbbrev, matchStatus } from '../utils/time.js'
 import { downloadICS } from '../utils/ics.js'
+import { useFollow } from '../context/follow.jsx'
+import { useDetail } from '../context/detail.js'
 
 function Team({ name }) {
   const flag = FLAG_BY_TEAM[name]
+  const { isFollowed, toggle } = useFollow()
+  const on = Boolean(flag) && isFollowed(name)
   return (
-    <div className="team">
+    <div className={`team${on ? ' followed' : ''}`}>
+      {flag && (
+        <button
+          className={`star${on ? ' on' : ''}`}
+          onClick={() => toggle(name)}
+          aria-pressed={on}
+          aria-label={on ? `Unfollow ${name}` : `Follow ${name}`}
+          title={on ? `Unfollow ${name}` : `Follow ${name}`}
+        >
+          {on ? '★' : '☆'}
+        </button>
+      )}
       <span className="team-flag">{flag || '🏳️'}</span>
       <span className={`team-name${flag ? '' : ' team-tbd'}`}>{name}</span>
     </div>
@@ -44,6 +59,7 @@ function Channels({ feed }) {
 export default function MatchCard({ match, tz, feed = 'both', hidden = false }) {
   const [showWatch, setShowWatch] = useState(false)
   const [revealScore, setRevealScore] = useState(false)
+  const openDetail = useDetail()
   const venue = VENUES[match.venue]
   const status = matchStatus(match.ko)
   const viewerTime = formatTime(match.ko, tz)
@@ -128,6 +144,9 @@ export default function MatchCard({ match, tz, feed = 'both', hidden = false }) 
             title="Download .ics calendar file"
           >
             ＋ Add to calendar
+          </button>
+          <button className="cal-btn" onClick={() => openDetail(match)}>
+            ℹ Details
           </button>
         </div>
         {showWatch && (

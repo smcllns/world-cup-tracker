@@ -6,6 +6,25 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-06-09
 
+- **Follow teams:** star any team to highlight it everywhere (schedule, week,
+  bracket, standings) and filter to a one-click "⭐ My Teams" view. Saved in the
+  browser (localStorage).
+- **Next-match countdown + jump:** a hero bar counts down to the next kickoff
+  (prioritizing your followed teams, or "Live now" when one is in play) with a
+  "Jump to it" button that scrolls to that match.
+- **Match detail + goal timeline:** click any match for a detail modal with full
+  venue/time/broadcast info and a minute-by-minute goal timeline (penalties &
+  own-goals flagged) once results are in.
+- **Qualification scenarios:** standings now apply the official FIFA tie-breakers
+  (points → goal difference → goals scored → head-to-head points/GD/GF among
+  tied teams; alphabetical fallback where fair-play/lots data isn't available),
+  mark who advances, and rank the **8 best third-placed teams**.
+- **Calendar subscription:** subscribe via `webcal://` to an auto-updating feed
+  (all matches or just your teams) served by a Netlify Function — it reflects
+  resolved knockout teams and scores as they happen. Plus one-time `.ics`
+  downloads (all / current filter / my teams) and a Google Calendar link.
+- **Light/dark theme:** a theme toggle (defaults to your system preference) with
+  no flash on load.
 - **Collapsed filters by default:** the whole filter/search panel (search, stage
   chips, dropdowns) is now hidden behind a compact "⚙ Filters & Search" toggle so
   the schedule is front-and-center. The toggle shows an active-filter count with a

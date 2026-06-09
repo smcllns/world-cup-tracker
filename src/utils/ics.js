@@ -65,14 +65,61 @@ export function buildICS(match) {
   return lines.join('\r\n')
 }
 
-export function downloadICS(match) {
-  const blob = new Blob([buildICS(match)], { type: 'text/calendar;charset=utf-8' })
+// One VEVENT block (without the calendar wrapper) for a match.
+function buildVEvent(match) {
+  const venue = VENUES[match.venue]
+  const start = new Date(match.ko)
+  const end = new Date(start.getTime() + MATCH_MINUTES * 60 * 1000)
+  const stageLabel = match.stage === 'Group' ? `Group ${match.group}` : STAGE_LABELS[match.stage]
+  const score = Array.isArray(match.score) ? ` (${match.score[0]}–${match.score[1]})` : ''
+  const summary = `World Cup: ${match.t1} vs ${match.t2}${score}`
+  const location = `${venue.name}, ${venue.city}, ${venue.country}`
+  const description = [
+    `${stageLabel} · Match ${match.num}`,
+    `English: ${US_BROADCAST.english.tv.join(' / ')} · Spanish: ${US_BROADCAST.spanish.tv.join(' / ')}`,
+  ].join('\\n')
+  return [
+    'BEGIN:VEVENT',
+    `UID:wc2026-match-${match.num}@worldcupviewer`,
+    `DTSTAMP:${toICSDate(new Date())}`,
+    `DTSTART:${toICSDate(start)}`,
+    `DTEND:${toICSDate(end)}`,
+    `SUMMARY:${esc(summary)}`,
+    `LOCATION:${esc(location)}`,
+    `DESCRIPTION:${description}`,
+    'END:VEVENT',
+  ].join('\r\n')
+}
+
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `wc2026-match-${match.num}.ics`
+  a.download = filename
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+export function downloadICS(match) {
+  downloadText(buildICS(match), `wc2026-match-${match.num}.ics`)
+}
+
+// A whole calendar of matches (used by the "download all / my teams / filtered" buttons).
+export function buildICSCollection(matches, calName = 'World Cup 2026') {
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//World Cup 2026 Viewer//EN',
+    'CALSCALE:GREGORIAN',
+    `X-WR-CALNAME:${esc(calName)}`,
+    ...matches.map(buildVEvent),
+    'END:VCALENDAR',
+  ].join('\r\n')
+}
+
+export function downloadICSCollection(matches, filename = 'wc2026.ics', calName = 'World Cup 2026') {
+  downloadText(buildICSCollection(matches, calName), filename)
 }

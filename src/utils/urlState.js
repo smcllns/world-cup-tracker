@@ -12,6 +12,7 @@ export const DEFAULT_FILTERS = {
   venue: 'all',
   timeframe: 'all',
   feed: 'both',
+  myTeams: false,
 }
 
 export function readState(detectedTz) {
@@ -29,6 +30,7 @@ export function readState(detectedTz) {
     venue: get('venue', 'all'),
     timeframe: get('when', 'all'),
     feed: get('feed', 'both'),
+    myTeams: get('mine', '0') === '1',
   }
 
   return {
@@ -54,6 +56,7 @@ export function writeState({ view, tz, hideScores, filters }, detectedTz) {
   if (filters.venue !== 'all') p.set('venue', filters.venue)
   if (filters.timeframe !== 'all') p.set('when', filters.timeframe)
   if (filters.feed !== 'both') p.set('feed', filters.feed)
+  if (filters.myTeams) p.set('mine', '1')
 
   const qs = p.toString()
   const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname

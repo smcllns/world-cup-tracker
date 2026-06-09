@@ -6,10 +6,15 @@ import MatchCard from './components/MatchCard.jsx'
 import Bracket from './components/Bracket.jsx'
 import Standings from './components/Standings.jsx'
 import WeekView from './components/WeekView.jsx'
+import NextMatch from './components/NextMatch.jsx'
+import MatchDetail from './components/MatchDetail.jsx'
+import CalendarModal from './components/CalendarModal.jsx'
 import { detectTimezone, formatDateLong, dayKey, matchStatus } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
 import { parseQuery, matchesSearch } from './utils/search.js'
 import { fetchResults, applyResults, RESULTS_SOURCE } from './services/results.js'
+import { useFollow } from './context/follow.jsx'
+import { DetailContext } from './context/detail.js'
 
 const REFRESH_MS = 120000 // auto-refresh scores every 2 minutes while open
 
@@ -30,12 +35,14 @@ const INITIAL_FILTERS = {
   venue: 'all',
   timeframe: 'all',
   feed: 'both',
+  myTeams: false,
 }
 
 // How many filters are actively narrowing the results (ignores tz & feed view).
 function countActiveFilters(f) {
   let n = 0
   if (f.search.trim()) n++
+  if (f.myTeams) n++
   n += f.stages.length
   for (const k of ['group', 'team', 'country', 'region', 'venue', 'timeframe']) {
     if (f[k] !== 'all') n++
@@ -46,6 +53,25 @@ function countActiveFilters(f) {
 export default function App() {
   const detectedTz = useMemo(detectTimezone, [])
   const initial = useMemo(() => readState(detectedTz), [detectedTz])
+  const { followed, count: followCount } = useFollow()
+
+  const [theme, setTheme] = useState(
+    () => (typeof document !== 'undefined' && document.documentElement.dataset.theme) || 'dark',
+  )
+  const toggleTheme = () =>
+    setTheme((t) => {
+      const next = t === 'light' ? 'dark' : 'light'
+      document.documentElement.dataset.theme = next
+      try {
+        localStorage.setItem('wc2026:theme', next)
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+
+  const [detailMatch, setDetailMatch] = useState(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   const [view, setView] = useState(initial.view)
   const [tz, setTz] = useState(initial.tz)
@@ -111,6 +137,8 @@ export default function App() {
     const parsed = parseQuery(filters.search)
     return matches.filter((m) => {
       const venue = VENUES[m.venue]
+      if (filters.myTeams && followed.size && !(followed.has(m.t1) || followed.has(m.t2)))
+        return false
       if (filters.stages.length && !filters.stages.includes(m.stage)) return false
       if (filters.group !== 'all' && m.group !== filters.group) return false
       if (filters.team !== 'all' && m.t1 !== filters.team && m.t2 !== filters.team) return false
@@ -121,7 +149,7 @@ export default function App() {
       if (!matchesSearch(m, venue, parsed)) return false
       return true
     })
-  }, [filters, matches])
+  }, [filters, matches, followed])
 
   const days = useMemo(() => {
     const map = new Map()
@@ -134,6 +162,7 @@ export default function App() {
   }, [filtered, tz])
 
   return (
+    <DetailContext.Provider value={setDetailMatch}>
     <div className="app">
       <header className="app-header">
         <div className="title-block">
@@ -157,16 +186,29 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button
-            className={`spoiler-btn${hideScores ? ' active' : ''}`}
-            onClick={() => {
-              setHideScores((h) => !h)
-              setDayOverrides({}) // global change resets per-day overrides
-            }}
-            title="Toggle spoiler-free mode for all scores"
-          >
-            {hideScores ? '🙈 Scores hidden' : '👁 Scores shown'}
-          </button>
+          <div className="bar-actions">
+            <button
+              className={`spoiler-btn${hideScores ? ' active' : ''}`}
+              onClick={() => {
+                setHideScores((h) => !h)
+                setDayOverrides({}) // global change resets per-day overrides
+              }}
+              title="Toggle spoiler-free mode for all scores"
+            >
+              {hideScores ? '🙈 Scores hidden' : '👁 Scores shown'}
+            </button>
+            <button className="icon-btn" onClick={() => setCalendarOpen(true)} title="Calendar subscribe & export">
+              📅 Calendar
+            </button>
+            <button
+              className="icon-btn"
+              onClick={toggleTheme}
+              title="Toggle light / dark theme"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? '🌙' : '🌞'}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -219,6 +261,15 @@ export default function App() {
               {activeCount > 0 && <span className="filter-count">{activeCount}</span>}
               <span className="chev">{filtersOpen ? '▲' : '▼'}</span>
             </button>
+            {followCount > 0 && (
+              <button
+                className={`myteams-btn${filters.myTeams ? ' active' : ''}`}
+                onClick={() => setFilters((f) => ({ ...f, myTeams: !f.myTeams }))}
+                title="Show only matches with teams you follow"
+              >
+                ⭐ My Teams <span className="myteams-count">{followCount}</span>
+              </button>
+            )}
             {activeCount > 0 && (
               <button className="clear-mini" onClick={() => setFilters(INITIAL_FILTERS)}>
                 Clear all
@@ -246,6 +297,7 @@ export default function App() {
 
       {view === 'schedule' && (
         <>
+          <NextMatch matches={matches} tz={tz} />
           <main className="schedule">
             {days.length === 0 && (
               <div className="empty">
@@ -255,7 +307,7 @@ export default function App() {
             {days.map(([key, matches]) => {
               const hidden = dayHidden(key)
               return (
-                <section key={key} className="day">
+                <section key={key} id={`day-${key}`} className="day">
                   <div className="day-header">
                     <h2>{formatDateLong(matches[0].ko, tz)}</h2>
                     <button className="day-spoiler" onClick={() => toggleDay(key)}>
@@ -294,6 +346,23 @@ export default function App() {
           it.
         </p>
       </footer>
+
+      {detailMatch && (
+        <MatchDetail
+          match={detailMatch}
+          tz={tz}
+          hideScores={hideScores}
+          onClose={() => setDetailMatch(null)}
+        />
+      )}
+      {calendarOpen && (
+        <CalendarModal
+          matches={matches}
+          filtered={filtered}
+          onClose={() => setCalendarOpen(false)}
+        />
+      )}
     </div>
+    </DetailContext.Provider>
   )
 }

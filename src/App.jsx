@@ -5,6 +5,7 @@ import Filters from './components/Filters.jsx'
 import MatchCard from './components/MatchCard.jsx'
 import Bracket from './components/Bracket.jsx'
 import Standings from './components/Standings.jsx'
+import WeekView from './components/WeekView.jsx'
 import { detectTimezone, formatDateLong, dayKey, matchStatus } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
 import { fetchResults, applyResults, RESULTS_SOURCE } from './services/results.js'
@@ -13,6 +14,7 @@ const REFRESH_MS = 120000 // auto-refresh scores every 2 minutes while open
 
 const VIEWS = [
   { id: 'schedule', label: '📅 Schedule' },
+  { id: 'week', label: '📆 Week' },
   { id: 'groups', label: '📊 Groups' },
   { id: 'bracket', label: '🏆 Bracket' },
 ]
@@ -179,16 +181,25 @@ export default function App() {
         </button>
       </div>
 
+      {(view === 'schedule' || view === 'week') && (
+        <Filters
+          filters={filters}
+          setFilters={setFilters}
+          tz={tz}
+          setTz={setTz}
+          detectedTz={detectedTz}
+          resultCount={filtered.length}
+        />
+      )}
+
+      {view === 'week' && (
+        <main className="week-view">
+          <WeekView allMatches={matches} shown={filtered} tz={tz} dayHidden={dayHidden} />
+        </main>
+      )}
+
       {view === 'schedule' && (
         <>
-          <Filters
-            filters={filters}
-            setFilters={setFilters}
-            tz={tz}
-            setTz={setTz}
-            detectedTz={detectedTz}
-            resultCount={filtered.length}
-          />
           <main className="schedule">
             {days.length === 0 && (
               <div className="empty">

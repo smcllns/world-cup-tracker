@@ -22,6 +22,9 @@ data/source updates, deployment). Newest day on top.
   info) for Apple/Google/Outlook calendars.
 - **Bracket view:** two-sided knockout bracket (R32 → Final) plus third-place
   match; fills in real teams as the knockout resolves.
+- **Week view:** a Sunday–Saturday calendar laid out as 7 day-columns, with
+  matches color-coded by group (and a color for knockout games), plus prev/next
+  week navigation and a color legend. Respects active filters and spoiler mode.
 - **Group standings:** all 12 group tables (P/W/D/L/GF/GA/GD/Pts) computed from
   results; top-two highlighted as qualifying.
 - **Spoiler-free mode:** hide scores globally, per day, or reveal a single

@@ -6,6 +6,15 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-06-09
 
+- **Hover for home-country kickoff times:** hovering a team in any match-context
+  view (schedule, week, bracket, next-match bar, detail modal) shows when the
+  game kicks off in that team's home-country local time. Countries spanning
+  multiple time zones (USA, Canada, Mexico, Brazil, Australia, NZ, Ecuador,
+  Spain, Portugal, DR Congo) list each distinct local time; same-clock zones
+  collapse. Backed by a new `teamTimezones` map and `teamKickoffTooltip` helper,
+  with tests (suite now 61).
+- **Footer credit + source link:** footer now credits Chester Ismay
+  (chester.rbind.io) and links to the GitHub repo.
 - **Now public + second host:** repository made public; the app is also deployed
   to GitHub Pages at https://ismayc.github.io/world-cup-viewer/ (alongside
   Netlify). Build uses a relative base so one artifact works at both a domain
@@ -41,7 +50,7 @@ data/source updates, deployment). Newest day on top.
   search and selects go full-width (with 16px text to stop iOS zoom-on-focus),
   standings collapse to one column, and week/bracket grids scroll. Bigger tap
   targets throughout.
-- **Tests + CI/CD:** added a Vitest suite (44 tests) covering data integrity,
+- **Tests + CI/CD:** added a Vitest suite (44 tests, since grown) covering data integrity,
   the search parser, results merge/parsing, week/time/ICS/standings utils, and a
   jsdom render smoke test for every view. Wired up GitHub Actions: every push/PR
   runs tests + build, and pushes to `main` deploy to Netlify only if tests pass.

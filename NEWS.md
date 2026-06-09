@@ -6,6 +6,18 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-06-09
 
+- **Mobile-friendly:** responsive pass for phones/tablets — match cards stack,
+  the filter panel stops sticking, the view switcher scrolls horizontally,
+  search and selects go full-width (with 16px text to stop iOS zoom-on-focus),
+  standings collapse to one column, and week/bracket grids scroll. Bigger tap
+  targets throughout.
+- **Tests + CI/CD:** added a Vitest suite (44 tests) covering data integrity,
+  the search parser, results merge/parsing, week/time/ICS/standings utils, and a
+  jsdom render smoke test for every view. Wired up GitHub Actions: every push/PR
+  runs tests + build, and pushes to `main` deploy to Netlify only if tests pass.
+- **Fix:** resolved a blank/black page caused by a missing `useState` import in
+  the Filters component (a runtime crash the production build didn't catch — now
+  guarded by the render smoke test).
 - Initial release of the World Cup 2026 Schedule Viewer (React + Vite).
 - **Schedule:** all 104 matches with kickoff auto-converted to the viewer's
   timezone (detected via `Intl`, switchable to 20+ zones); stadium-local time

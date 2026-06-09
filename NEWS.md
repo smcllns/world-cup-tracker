@@ -6,6 +6,14 @@ data/source updates, deployment). Newest day on top.
 
 ## 2026-06-09
 
+- **Venue audit + consistency tests:** verified all 104 host venues against
+  authoritative sources (Wikipedia knockout cities; Yahoo + MLSsoccer by-stadium
+  for the group stage) — all correct (a Yahoo article mislabeled Uruguay v Spain
+  as Monterrey; it's Estadio Akron, as we had it). Froze the official venue per
+  match into the test fixture. Added internal-consistency tests: each group is a
+  complete round-robin, final-matchday games kick off simultaneously, no team
+  plays twice within 48h, no venue double-books, and every "Winner/Loser Match N"
+  reference resolves to an earlier match. Suite now 71 tests.
 - **Full kickoff-time audit + regression test:** cross-checked all 104 kickoffs
   against authoritative sources (Wikipedia knockout table; wilx/Yahoo group
   schedules). The group stage (1–72) was already correct. Found and fixed **14

@@ -115,3 +115,29 @@ export const OFFICIAL_ET = {
   103: '2026-07-18 17:00',
   104: '2026-07-19 15:00',
 }
+
+// Authoritative host venue (key into src/data/venues.js) for every match.
+// Validated 2026-06-09: knockout (73–104) against the Wikipedia knockout table's
+// host cities; group (1–72) against Yahoo Sports + MLSsoccer.com by-stadium
+// schedules (e.g. Uruguay v Spain confirmed at Estadio Akron, not Monterrey).
+export const OFFICIAL_VENUE = {
+  1: 'azteca', 2: 'akron', 3: 'bmo', 4: 'sofi', 5: 'levis', 6: 'metlife',
+  7: 'gillette', 8: 'bcplace', 9: 'nrg', 10: 'att', 11: 'linc', 12: 'bbva',
+  13: 'mercedes', 14: 'lumen', 15: 'hardrock', 16: 'sofi', 17: 'metlife',
+  18: 'gillette', 19: 'arrowhead', 20: 'levis', 21: 'nrg', 22: 'att', 23: 'bmo',
+  24: 'azteca', 25: 'mercedes', 26: 'sofi', 27: 'bcplace', 28: 'akron',
+  29: 'lumen', 30: 'gillette', 31: 'linc', 32: 'levis', 33: 'nrg', 34: 'bmo',
+  35: 'arrowhead', 36: 'bbva', 37: 'mercedes', 38: 'sofi', 39: 'hardrock',
+  40: 'bcplace', 41: 'att', 42: 'linc', 43: 'metlife', 44: 'levis', 45: 'nrg',
+  46: 'gillette', 47: 'bmo', 48: 'akron', 49: 'bcplace', 50: 'lumen',
+  51: 'hardrock', 52: 'mercedes', 53: 'azteca', 54: 'bbva', 55: 'linc',
+  56: 'metlife', 57: 'att', 58: 'arrowhead', 59: 'sofi', 60: 'levis',
+  61: 'gillette', 62: 'bmo', 63: 'nrg', 64: 'akron', 65: 'lumen', 66: 'bcplace',
+  67: 'metlife', 68: 'linc', 69: 'hardrock', 70: 'mercedes', 71: 'arrowhead',
+  72: 'att', 73: 'sofi', 74: 'gillette', 75: 'bbva', 76: 'nrg', 77: 'metlife',
+  78: 'att', 79: 'azteca', 80: 'mercedes', 81: 'levis', 82: 'lumen', 83: 'bmo',
+  84: 'sofi', 85: 'bcplace', 86: 'hardrock', 87: 'arrowhead', 88: 'att',
+  89: 'linc', 90: 'nrg', 91: 'metlife', 92: 'azteca', 93: 'att', 94: 'lumen',
+  95: 'mercedes', 96: 'bcplace', 97: 'gillette', 98: 'sofi', 99: 'hardrock',
+  100: 'arrowhead', 101: 'att', 102: 'mercedes', 103: 'hardrock', 104: 'metlife',
+}

@@ -3,7 +3,7 @@ import { MATCHES, STAGE_ORDER } from '../src/data/matches.js'
 import { VENUES } from '../src/data/venues.js'
 import { TEAMS, ALL_TEAMS } from '../src/data/teams.js'
 import { BRACKET } from '../src/utils/bracket.js'
-import { OFFICIAL_ET } from './fixtures/official-kickoffs.js'
+import { OFFICIAL_ET, OFFICIAL_VENUE } from './fixtures/official-kickoffs.js'
 
 // Render a kickoff instant as Eastern Time 'YYYY-MM-DD HH:mm' (24h), so it can
 // be compared to the authoritative fixture regardless of how ko is stored.
@@ -86,6 +86,81 @@ describe('schedule data integrity', () => {
   })
 })
 
+describe('schedule internal consistency', () => {
+  const groupMatches = MATCHES.filter((m) => m.stage === 'Group')
+  const ms = (iso) => new Date(iso).getTime()
+  const teamSet = new Set(ALL_TEAMS)
+
+  it('each group is a complete round-robin (6 games, every pair once, 3 per team)', () => {
+    for (const g of Object.keys(TEAMS)) {
+      const gm = groupMatches.filter((m) => m.group === g)
+      expect(gm, `group ${g} game count`).toHaveLength(6)
+      const teams = TEAMS[g].map((t) => t.name).sort()
+      const pairs = new Set(gm.map((m) => [m.t1, m.t2].sort().join(' v ')))
+      const expected = []
+      for (let i = 0; i < teams.length; i++)
+        for (let j = i + 1; j < teams.length; j++)
+          expected.push([teams[i], teams[j]].sort().join(' v '))
+      expect([...pairs].sort(), `group ${g} pairings`).toEqual(expected.sort())
+      const counts = {}
+      for (const m of gm) for (const t of [m.t1, m.t2]) counts[t] = (counts[t] || 0) + 1
+      expect(Object.values(counts), `group ${g} games per team`).toEqual([3, 3, 3, 3])
+    }
+  })
+
+  it("each group's final two matches kick off simultaneously", () => {
+    for (const g of Object.keys(TEAMS)) {
+      const gm = groupMatches.filter((m) => m.group === g).sort((a, b) => ms(a.ko) - ms(b.ko))
+      const [a, b] = gm.slice(-2)
+      expect(a.ko, `group ${g} matchday-3 simultaneity`).toBe(b.ko)
+    }
+  })
+
+  it('no team plays two matches less than 48h apart', () => {
+    const byTeam = {}
+    for (const m of MATCHES)
+      for (const t of [m.t1, m.t2])
+        if (teamSet.has(t)) (byTeam[t] ||= []).push(m)
+    const tooClose = []
+    for (const [t, arr] of Object.entries(byTeam)) {
+      arr.sort((a, b) => ms(a.ko) - ms(b.ko))
+      for (let i = 1; i < arr.length; i++) {
+        const gapH = (ms(arr[i].ko) - ms(arr[i - 1].ko)) / 3.6e6
+        if (gapH < 48) tooClose.push(`${t}: M${arr[i - 1].num}→M${arr[i].num} ${gapH.toFixed(1)}h`)
+      }
+    }
+    expect(tooClose).toEqual([])
+  })
+
+  it('every "Winner/Loser Match N" reference points to an existing earlier match', () => {
+    const nums = new Set(MATCHES.map((m) => m.num))
+    const bad = []
+    for (const m of MATCHES)
+      for (const slot of [m.t1, m.t2]) {
+        const r = slot.match(/^(?:Winner|Loser) Match (\d+)$/)
+        if (r) {
+          const ref = Number(r[1])
+          if (!nums.has(ref) || ref >= m.num) bad.push(`M${m.num} → "${slot}"`)
+        }
+      }
+    expect(bad).toEqual([])
+  })
+
+  it('no venue hosts two matches with overlapping (3h) windows', () => {
+    const byVenue = {}
+    for (const m of MATCHES) (byVenue[m.venue] ||= []).push(m)
+    const clashes = []
+    for (const [v, arr] of Object.entries(byVenue)) {
+      arr.sort((a, b) => ms(a.ko) - ms(b.ko))
+      for (let i = 1; i < arr.length; i++) {
+        const gapH = (ms(arr[i].ko) - ms(arr[i - 1].ko)) / 3.6e6
+        if (gapH < 3) clashes.push(`${v}: M${arr[i - 1].num}/M${arr[i].num} ${gapH.toFixed(1)}h`)
+      }
+    }
+    expect(clashes).toEqual([])
+  })
+})
+
 describe('kickoff times match the official schedule', () => {
   it('has an official ET kickoff for every match (and vice versa)', () => {
     const matchNums = MATCHES.map((m) => m.num).sort((a, b) => a - b)
@@ -104,6 +179,13 @@ describe('kickoff times match the official schedule', () => {
     // The schedule stores every instant in ET; a stray offset would silently
     // shift a game by hours (the class of bug this suite guards against).
     expect(MATCHES.filter((m) => !m.ko.endsWith('-04:00')).map((m) => m.num)).toEqual([])
+  })
+
+  it('every match is at its official venue', () => {
+    const wrong = MATCHES.filter((m) => m.venue !== OFFICIAL_VENUE[m.num]).map(
+      (m) => `M${m.num}: data ${m.venue} ≠ official ${OFFICIAL_VENUE[m.num]}`,
+    )
+    expect(wrong).toEqual([])
   })
 
   it('every kickoff lands at a plausible local hour (11:00–23:59) at its venue', () => {

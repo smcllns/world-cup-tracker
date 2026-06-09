@@ -8,6 +8,7 @@ import Standings from './components/Standings.jsx'
 import WeekView from './components/WeekView.jsx'
 import { detectTimezone, formatDateLong, dayKey, matchStatus } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
+import { parseQuery, matchesSearch } from './utils/search.js'
 import { fetchResults, applyResults, RESULTS_SOURCE } from './services/results.js'
 
 const REFRESH_MS = 120000 // auto-refresh scores every 2 minutes while open
@@ -79,7 +80,7 @@ export default function App() {
     setDayOverrides((o) => ({ ...o, [key]: !dayHidden(key) }))
 
   const filtered = useMemo(() => {
-    const q = filters.search.trim().toLowerCase()
+    const parsed = parseQuery(filters.search)
     return matches.filter((m) => {
       const venue = VENUES[m.venue]
       if (filters.stages.length && !filters.stages.includes(m.stage)) return false
@@ -89,10 +90,7 @@ export default function App() {
       if (filters.region !== 'all' && venue.region !== filters.region) return false
       if (filters.venue !== 'all' && m.venue !== filters.venue) return false
       if (filters.timeframe !== 'all' && matchStatus(m.ko) !== filters.timeframe) return false
-      if (q) {
-        const hay = `${m.t1} ${m.t2} ${venue.city} ${venue.name} ${venue.country}`.toLowerCase()
-        if (!hay.includes(q)) return false
-      }
+      if (!matchesSearch(m, venue, parsed)) return false
       return true
     })
   }, [filters, matches])

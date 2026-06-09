@@ -128,6 +128,38 @@ select {
   cursor: pointer;
 }
 
+.search-hints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 12px 0 4px;
+}
+.hint-label {
+  font-size: 0.74rem;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.hint-chip {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.74rem;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px dashed var(--border);
+  background: var(--card);
+  color: var(--accent);
+  cursor: pointer;
+}
+.hint-chip:hover {
+  border-style: solid;
+  border-color: var(--accent);
+}
+.hint-note {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-left: 4px;
+}
+
 .stage-chips {
   display: flex;
   flex-wrap: wrap;

@@ -18,6 +18,11 @@ data/source updates, deployment). Newest day on top.
 - **Filtering:** search; stage chips; group, team, host country, region,
   city/stadium, timeframe (live/upcoming/finished), and broadcast-language
   filters; reset.
+- **Scoped search:** the search box understands `field: value` syntax —
+  `team: Mexico`, `city: Dallas`, `stadium: SoFi`, `country: Canada`,
+  `group: C`, `stage: Final`, `region: Western` — and combines multiple tokens
+  (`team: Brazil stage: group`). Plain text still does a broad match. One-click
+  example chips make the syntax discoverable.
 - **Add to calendar:** per-match `.ics` download (UTC times, venue, broadcast
   info) for Apple/Google/Outlook calendars.
 - **Bracket view:** two-sided knockout bracket (R32 → Final) plus third-place

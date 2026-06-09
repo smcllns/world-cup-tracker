@@ -7,6 +7,9 @@ const GROUPS = Object.keys(TEAMS)
 const COUNTRIES = ['USA', 'Canada', 'Mexico']
 const REGIONS = ['Western', 'Central', 'Eastern']
 
+// One-click example queries that demonstrate the scoped-search syntax.
+const SEARCH_EXAMPLES = ['team: Mexico', 'city: Dallas', 'stage: Final', 'group: C']
+
 // Venues sorted by city for the dropdown.
 const VENUE_OPTIONS = Object.entries(VENUES)
   .map(([id, v]) => ({ id, label: `${v.city} — ${v.name}` }))
@@ -42,7 +45,7 @@ export default function Filters({ filters, setFilters, tz, setTz, detectedTz, re
         <input
           className="search"
           type="search"
-          placeholder="Search team, city, or stadium…"
+          placeholder='Search — try "team: Mexico" or "city: Dallas"'
           value={filters.search}
           onChange={(e) => update({ search: e.target.value })}
         />
@@ -57,6 +60,18 @@ export default function Filters({ filters, setFilters, tz, setTz, detectedTz, re
             ))}
           </select>
         </label>
+      </div>
+
+      <div className="search-hints">
+        <span className="hint-label">Try:</span>
+        {SEARCH_EXAMPLES.map((ex) => (
+          <button key={ex} className="hint-chip" onClick={() => update({ search: ex })}>
+            {ex}
+          </button>
+        ))}
+        <span className="hint-note">
+          fields: team · city · stadium · country · group · stage · region
+        </span>
       </div>
 
       <div className="stage-chips">

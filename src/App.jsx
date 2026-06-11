@@ -19,7 +19,8 @@ import { annotateScoreChecks } from './services/reconcile.js'
 import { useFollow } from './context/follow.jsx'
 import { DetailContext } from './context/detail.js'
 
-const REFRESH_MS = 120000 // auto-refresh scores every 2 minutes while open
+const REFRESH_MS = 120000 // auto-refresh every 2 minutes when nothing is live
+const LIVE_REFRESH_MS = 30000 // poll every 30s while a match is in progress
 
 const VIEWS = [
   { id: 'schedule', label: '📅 Schedule' },
@@ -126,12 +127,6 @@ export default function App() {
     return () => abortRef.current?.abort()
   }, [loadResults])
 
-  useEffect(() => {
-    if (!autoRefresh) return
-    const id = setInterval(loadResults, REFRESH_MS)
-    return () => clearInterval(id)
-  }, [autoRefresh, loadResults])
-
   // Merge into the schedule (immutably): OpenFootball first (source of record),
   // overlay ESPN's live/just-finished scores where OpenFootball has none, then
   // annotate each final with how many independent sources confirm it.
@@ -146,6 +141,14 @@ export default function App() {
   }, [results, live, backup])
   const finishedCount = useMemo(() => matches.filter((m) => m.score).length, [matches])
   const liveCount = useMemo(() => matches.filter((m) => m.live).length, [matches])
+
+  // Auto-refresh: poll fast (30s) while a match is live so the score and clock
+  // track ESPN closely, and slow (2 min) otherwise to go easy on the feeds.
+  useEffect(() => {
+    if (!autoRefresh) return
+    const id = setInterval(loadResults, liveCount > 0 ? LIVE_REFRESH_MS : REFRESH_MS)
+    return () => clearInterval(id)
+  }, [autoRefresh, loadResults, liveCount])
 
   // Keep the URL in sync with shareable state.
   useEffect(() => {

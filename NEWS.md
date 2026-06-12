@@ -5,6 +5,13 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-11
+- **Doc fix — README no longer claims subs in the timeline:** the Match Detail
+  timeline advertised substitutions (🔁), but the ESPN *scoreboard* feed the app
+  reads only carries goals and cards (its curated "key plays" list) — subs live
+  only on ESPN's per-match `summary` endpoint, which the app doesn't fetch. So
+  subs never rendered. Trimmed the subs mention from the README feature list and
+  data-sources note to match actual behavior. (The timeline's sub-rendering code
+  stays as harmless scaffolding if we later wire the summary endpoint.)
 - **Feed-freshness gate now alarms only when the app is blind:** the CI check
   bucketed STALE on OpenFootball alone, so it red-failed after every finished
   match while OpenFootball (which commits results hours late) caught up — even

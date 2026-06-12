@@ -20,8 +20,8 @@ city/stadium, a bracket, group standings, and live results.
 - **Four views** — chronological schedule, a Sunday–Saturday week calendar,
   group standings, and the knockout bracket.
 - **Match detail** — click any match for full venue/time/broadcast info, the live
-  status/clock, and a minute-by-minute event timeline (goals ⚽, cards 🟨🟥,
-  subs 🔁) once a match is underway.
+  status/clock, and a minute-by-minute event timeline (goals ⚽, cards 🟨🟥)
+  once a match is underway.
 - **How to watch (US)** — English (FOX/FS1) & Spanish (Telemundo/Universo) TV
   and streaming per match; free over-the-air channels flagged.
 - **Venues** — all 16 host stadiums with city, country, and region.
@@ -42,8 +42,8 @@ city/stadium, a bracket, group standings, and live results.
   public JSON feed (no API key), merged in and auto-refreshed, with a live
   in-match score + clock (incl. "HT"/stoppage) overlaid from
   [ESPN](https://www.espn.com/soccer/) while games are underway — shown across the
-  Schedule, Week, and Bracket views. The Match Detail timeline lists goals, cards,
-  and subs. Final scores are cross-checked against a third source
+  Schedule, Week, and Bracket views. The Match Detail timeline lists goals and
+  cards. Final scores are cross-checked against a third source
   ([TheSportsDB](https://www.thesportsdb.com/)) — each match shows how many
   independent sources confirm the result.
 

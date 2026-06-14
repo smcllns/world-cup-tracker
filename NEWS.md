@@ -5,6 +5,13 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-14
+- **ESPN-only fallback when TheSportsDB lags:** the autofill still prefers ✓✓
+  (both sources agree), but TheSportsDB often posts a final tens of minutes late,
+  which was blocking otherwise-confirmed syncs. Now, once a match is ≥150 min
+  past kickoff (≈ full time + ~30 min) and ESPN has confirmed the final while
+  TheSportsDB still hasn't, it syncs on ESPN alone — the commit and email note
+  “ESPN only — TheSportsDB lagging”. Disagreements are still never auto-written.
+  (First use: Haiti 0–1 Scotland.)
 - **Autofill now runs only during match-finishing windows (and actually at
   ~5-min cadence):** GitHub throttles `*/5` cron schedules hard — the workflow was
   only firing a couple of times an hour. Reworked it into a window-gated

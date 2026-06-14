@@ -45,7 +45,13 @@ import { applyEdit, orientFt, normEspn, parseClock } from './cuptxt.mjs'
 const REPO = 'openfootball/worldcup'
 const FILE = '2026--usa/cup.txt'
 
+// Prefer ✓✓ (ESPN + TheSportsDB agree). But TheSportsDB often lags by tens of
+// minutes, so once a match is this far past kickoff (≈ full time + ~30 min) and
+// ESPN has confirmed the final, sync on ESPN alone rather than wait indefinitely.
+const ESPN_ONLY_AFTER_MIN = 150
+
 const eqFt = (a, b) => a && b && a[0] === b[0] && a[1] === b[1]
+const minutesSince = (iso) => (Date.now() - new Date(iso).getTime()) / 60_000
 const etDate = (iso) =>
   new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '')
 
@@ -166,16 +172,24 @@ async function main() {
     return
   }
 
-  // Candidates: OpenFootball blank, both fallbacks present AND agree (✓✓) on the
-  // final (the after-extra-time score for knockouts). Merge first so knockout
-  // matches carry their resolved team names instead of "Winner Group A".
+  // Candidates: OpenFootball blank, confirmed final. Default is ✓✓ (both
+  // fallbacks agree on the after-extra-time score); if they DISAGREE, skip. When
+  // only ESPN has it, wait for TheSportsDB — unless the match is well past full
+  // time, then fall back to ESPN alone. Merge first so knockout matches carry
+  // their resolved team names instead of "Winner Group A".
   const merged = applyLive(applyResults(MATCHES, ofMap), liveMap)
   const candidates = []
   for (const m of merged) {
     if (openFootballFinalScore(m, ofMap)) continue
     const espn = orientFt(espnFinalScore(m, liveMap), m)
     const sdb = orientFt(sdbFinalScore(m, backupMap), m)
-    if (espn && sdb && eqFt(espn, sdb)) candidates.push({ m, ft: espn })
+    if (espn && sdb) {
+      if (eqFt(espn, sdb)) candidates.push({ m, ft: espn, conf: 'both' })
+      // disagreement → never auto-write; leave it for a human
+    } else if (espn && minutesSince(m.ko) >= ESPN_ONLY_AFTER_MIN) {
+      candidates.push({ m, ft: espn, conf: 'espn-only' })
+    }
+    // only TheSportsDB, or ESPN but not yet past the wait window → wait
   }
 
   console.log(`\nOpenFootball autofill — ${REPO}/${FILE}`)
@@ -193,7 +207,7 @@ async function main() {
 
   const applied = []
   const manual = [] // confirmed, but not safe to auto-write — surfaced for a human
-  for (const { m, ft } of candidates) {
+  for (const { m, ft, conf } of candidates) {
     const knockout = m.stage !== 'Group'
     const detail = await espnGoals(m)
 
@@ -235,8 +249,9 @@ async function main() {
       continue
     }
     text = res.text
-    applied.push(res)
-    console.log(`  ✓ ${res.label}${res.withDetail ? ' (+ detail)' : ' (score only)'}${pensNote}`)
+    applied.push({ ...res, conf })
+    const srcNote = conf === 'espn-only' ? ' [ESPN only — TheSportsDB still lagging]' : ''
+    console.log(`  ✓ ${res.label}${res.withDetail ? ' (+ detail)' : ' (score only)'}${pensNote}${srcNote}`)
   }
 
   if (manual.length) {
@@ -268,9 +283,10 @@ async function main() {
     return
   }
 
+  const srcSuffix = (a) => (a.conf === 'espn-only' ? ' (ESPN only — TheSportsDB lagging)' : '')
   const message =
     `Auto-fill ${applied.length} result${applied.length === 1 ? '' : 's'} from ESPN/TheSportsDB\n\n` +
-    applied.map((a) => `- ${a.label}`).join('\n')
+    applied.map((a) => `- ${a.label}${srcSuffix(a)}`).join('\n')
   const put = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
     method: 'PUT',
     headers: { ...ghHeaders(pushToken), 'Content-Type': 'application/json' },
@@ -295,7 +311,7 @@ async function main() {
     applied.map((a) => a.label).join('; ')
   const body =
     `New final score(s) synced to openfootball/worldcup (2026--usa/cup.txt):\n\n` +
-    applied.map((a) => `- ${a.label}`).join('\n') +
+    applied.map((a) => `- ${a.label}${srcSuffix(a)}`).join('\n') +
     `\n\nCommit: ${url}\n`
   sendEmail(subject, body)
 }

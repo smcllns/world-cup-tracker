@@ -5,6 +5,12 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-14
+- **Resilient scheduling (sleep-until-window) + manual babysit:** GitHub fires
+  scheduled workflows only sporadically (observed ~once every 2h), which could
+  miss a match's ~95-min sync window entirely. Reworked the loop to SLEEP until
+  the next match window (up to a ~5h budget) and poll through it, so a single
+  sparse trigger still covers upcoming games. Added a `babysit` workflow_dispatch
+  input that runs this long loop on demand (used to guarantee overnight coverage).
 - **ESPN-only fallback when TheSportsDB lags:** the autofill still prefers ✓✓
   (both sources agree), but TheSportsDB often posts a final tens of minutes late,
   which was blocking otherwise-confirmed syncs. Now, once a match is ≥150 min

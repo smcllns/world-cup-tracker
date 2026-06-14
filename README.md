@@ -104,9 +104,13 @@ in at [`2026--usa/cup.txt`](https://github.com/openfootball/worldcup/blob/master
 It only reads feeds and prints — it never writes anything.
 
 `npm run of:autofill` is the automated counterpart: it makes the same edits and
-commits them to `cup.txt` for you. It's deliberately conservative — only when
-**both** fallbacks agree on the final, and only on a line still reading
-`Home v Away` (so re-running never double-edits). Half-time and goalscorers come
+commits them to `cup.txt` for you. It's deliberately conservative — by default
+only when **both** fallbacks agree on the final (and never when they *disagree*),
+and only on a line still reading `Home v Away` (so re-running never double-edits).
+Because TheSportsDB often posts finals tens of minutes late, there's an
+**ESPN-only fallback**: once a match is ≥150 min past kickoff (≈ full time + ~30
+min) and ESPN has confirmed the final while TheSportsDB still hasn't, it syncs on
+ESPN alone (the commit/email note it). Half-time and goalscorers come
 from ESPN and are written in the file's house style (`Home  FT (HT)  Away` +
 scorer block, `(pen.)`/`(OG)` markers, CRLF-safe); if the goals don't reconcile
 with the agreed final it writes a valid score-only line. **Knockouts** are

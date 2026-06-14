@@ -5,6 +5,13 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-14
+- **Post on ESPN's final immediately — no second-source wait (target: within ~10
+  min of full time):** dropped the ✓✓-required gate. ESPN is now the trigger — the
+  moment it reports a match 'post'/final, the next poll (~5 min) syncs it.
+  TheSportsDB stays only as a safety CHECK: if it's present and CONTRADICTS ESPN we
+  defer (never write a disputed score); if absent or agreeing, we post. ESPN is
+  also no longer required to have BOTH feeds reachable — only ESPN. Removed the
+  ESPN-only time threshold. This matters most during the maintainer's off-hours.
 - **Shorter wait for TheSportsDB before the ESPN-only fallback:** lowered
   `ESPN_ONLY_AFTER_MIN` 150→125 (≈ full time + ~10 min) so a confirmed-by-ESPN
   final syncs sooner when TheSportsDB lags. (ESPN only counts as 'post'/final, so

@@ -6,33 +6,23 @@
 import { normEspn, parseClock } from './cuptxt.mjs'
 import { normalizeTeam } from '../src/services/results.js'
 
-// Prefer ✓✓ (ESPN + TheSportsDB agree). But TheSportsDB often lags, so once a
-// match is this far past kickoff (≈ full time + ~10 min — give TheSportsDB a
-// short window) and ESPN has confirmed the final, sync on ESPN alone rather than
-// wait longer. (ESPN only counts when it reports the match 'post', so the result
-// is genuinely final regardless of this clock; this only bounds the cross-check wait.)
-export const ESPN_ONLY_AFTER_MIN = 125
-
 export const eqFt = (a, b) => Boolean(a && b && a[0] === b[0] && a[1] === b[1])
 
-// Decide what to do with one match, given the (already t1/t2-oriented) final
-// from each source and how long ago it kicked off. Returns one of:
-//   { action: 'skip', reason }            — OpenFootball already has it, or the
-//                                            two sources disagree (never write)
+// Decide what to do with one match, given the (already t1/t2-oriented) final from
+// each source. ESPN is the trigger: the moment it reports the match final (it only
+// returns a score when 'post'), we sync — no waiting for a second source, so a
+// result lands within a poll (~5 min) of full time. TheSportsDB is kept only as a
+// safety CHECK, never a wait: if it's present and CONTRADICTS ESPN we defer (a
+// wrong score is worse than a slow one); if it's absent or agrees, we post.
+//   { action: 'skip', reason }            — OpenFootball has it, or sources disagree
 //   { action: 'sync', conf: 'both' }      — ESPN + TheSportsDB agree
-//   { action: 'sync', conf: 'espn-only' } — only ESPN, but well past full time
-//   { action: 'wait', reason }            — confirmed by too few sources, too soon
-export function classifyMatch({ ofFt, espnFt, sdbFt, minutesPastKickoff }) {
+//   { action: 'sync', conf: 'espn-only' } — ESPN final, TheSportsDB not in yet
+//   { action: 'wait', reason }            — ESPN hasn't called it final yet
+export function classifyMatch({ ofFt, espnFt, sdbFt }) {
   if (ofFt) return { action: 'skip', reason: 'openfootball-has-it' }
-  if (espnFt && sdbFt) {
-    return eqFt(espnFt, sdbFt)
-      ? { action: 'sync', conf: 'both' }
-      : { action: 'skip', reason: 'sources-disagree' }
-  }
-  if (espnFt && minutesPastKickoff >= ESPN_ONLY_AFTER_MIN) {
-    return { action: 'sync', conf: 'espn-only' }
-  }
-  return { action: 'wait', reason: espnFt ? 'awaiting-second-source' : 'no-espn-final' }
+  if (!espnFt) return { action: 'wait', reason: 'no-espn-final' }
+  if (sdbFt && !eqFt(espnFt, sdbFt)) return { action: 'skip', reason: 'sources-disagree' }
+  return { action: 'sync', conf: sdbFt ? 'both' : 'espn-only' }
 }
 
 const toNum = (v) => (v == null || v === '' ? null : Number(v))

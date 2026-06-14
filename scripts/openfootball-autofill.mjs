@@ -8,8 +8,10 @@
 // cup.txt — `Home  FT (HT)  Away` (or the a.e.t./penalty form for knockouts)
 // plus a goalscorer block in the file's house style — and commits to master.
 // Conservative by design:
-//   • Only acts on ✓✓ matches (both fallbacks agree on the after-ET score);
-//     ⚠ single-source and ✗ disagreements are left for a human (`of:edits`).
+//   • ESPN is the trigger: the moment it reports a match final ('post'), we sync —
+//     no waiting for a second source, so a result lands within a poll (~5 min) of
+//     full time. TheSportsDB is only a CHECK: if it's present and CONTRADICTS
+//     ESPN we defer (✗ disagreements are never written); otherwise we post.
 //   • Idempotent: only touches a line that still reads "Home v Away". A line
 //     already carrying a score (or a knockout line still on placeholder names)
 //     is skipped — so re-running never double-edits.
@@ -49,7 +51,6 @@ const DIR = '2026--usa'
 // carry a "(NN)" match-number prefix). Target the right file per match.
 const fileFor = (m) => `${DIR}/${m.stage === 'Group' ? 'cup.txt' : 'cup_finals.txt'}`
 
-const minutesSince = (iso) => (Date.now() - new Date(iso).getTime()) / 60_000
 
 const dayCache = new Map()
 async function eventsForDate(yyyymmdd) {
@@ -136,16 +137,15 @@ async function main() {
   const [liveRes, backupRes] = await Promise.allSettled([fetchLive(), fetchBackup()])
   const liveMap = liveRes.status === 'fulfilled' ? liveRes.value : null
   const backupMap = backupRes.status === 'fulfilled' ? backupRes.value : null
-  if (!liveMap || !backupMap) {
-    console.log('Need BOTH ESPN and TheSportsDB to confirm a final — one is unreachable. Skipping.')
+  // ESPN is the trigger and is required; TheSportsDB is an optional cross-check.
+  if (!liveMap) {
+    console.log('ESPN (the primary source) is unreachable — skipping this run.')
     return
   }
 
-  // Candidates: OpenFootball blank, confirmed final. Default is ✓✓ (both
-  // fallbacks agree on the after-extra-time score); if they DISAGREE, skip. When
-  // only ESPN has it, wait for TheSportsDB — unless the match is well past full
-  // time, then fall back to ESPN alone. Merge first so knockout matches carry
-  // their resolved team names instead of "Winner Group A".
+  // Candidates: OpenFootball blank, ESPN reports a final → sync now (no waiting
+  // for TheSportsDB), unless TheSportsDB is present and CONTRADICTS ESPN (skip).
+  // Merge first so knockout matches carry their resolved names, not "Winner A".
   const merged = applyLive(applyResults(MATCHES, ofMap), liveMap)
   const candidates = []
   for (const m of merged) {
@@ -154,7 +154,6 @@ async function main() {
       ofFt: openFootballFinalScore(m, ofMap),
       espnFt: espn,
       sdbFt: orientFt(sdbFinalScore(m, backupMap), m),
-      minutesPastKickoff: minutesSince(m.ko),
     })
     if (decision.action === 'sync') candidates.push({ m, ft: espn, conf: decision.conf })
   }

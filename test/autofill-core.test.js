@@ -1,13 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import {
-  classifyMatch,
-  parseEspnEventDetail,
-  eqFt,
-  ESPN_ONLY_AFTER_MIN,
-} from '../scripts/autofill-core.mjs'
+import { classifyMatch, parseEspnEventDetail, eqFt } from '../scripts/autofill-core.mjs'
 
 describe('classifyMatch', () => {
-  const base = { ofFt: null, espnFt: null, sdbFt: null, minutesPastKickoff: 300 }
+  const base = { ofFt: null, espnFt: null, sdbFt: null }
 
   it('skips when OpenFootball already has the final', () => {
     expect(classifyMatch({ ...base, ofFt: [1, 0], espnFt: [1, 0], sdbFt: [1, 0] })).toEqual({
@@ -16,42 +11,36 @@ describe('classifyMatch', () => {
     })
   })
 
-  it('syncs ✓✓ when both fallbacks agree', () => {
+  it('syncs immediately on an ESPN final when TheSportsDB agrees (✓✓)', () => {
     expect(classifyMatch({ ...base, espnFt: [2, 1], sdbFt: [2, 1] })).toEqual({
       action: 'sync',
       conf: 'both',
     })
   })
 
-  it('never auto-writes when the two sources disagree', () => {
+  it('syncs immediately on an ESPN final when TheSportsDB is not in yet (no waiting)', () => {
+    expect(classifyMatch({ ...base, espnFt: [0, 1], sdbFt: null })).toEqual({
+      action: 'sync',
+      conf: 'espn-only',
+    })
+  })
+
+  it('never auto-writes when TheSportsDB contradicts ESPN', () => {
     expect(classifyMatch({ ...base, espnFt: [2, 1], sdbFt: [1, 1] })).toEqual({
       action: 'skip',
       reason: 'sources-disagree',
     })
   })
 
-  it('falls back to ESPN alone only once well past full time', () => {
-    expect(
-      classifyMatch({ ...base, espnFt: [0, 1], sdbFt: null, minutesPastKickoff: ESPN_ONLY_AFTER_MIN }),
-    ).toEqual({ action: 'sync', conf: 'espn-only' })
-    // ...but waits if it's still too soon
-    expect(
-      classifyMatch({ ...base, espnFt: [0, 1], sdbFt: null, minutesPastKickoff: ESPN_ONLY_AFTER_MIN - 1 }),
-    ).toEqual({ action: 'wait', reason: 'awaiting-second-source' })
-  })
-
-  it('waits (never ESPN-only-style on TheSportsDB) when only the backup has it', () => {
-    expect(classifyMatch({ ...base, espnFt: null, sdbFt: [1, 1], minutesPastKickoff: 999 })).toEqual({
+  it('waits when only TheSportsDB has it (ESPN is the trigger)', () => {
+    expect(classifyMatch({ ...base, espnFt: null, sdbFt: [1, 1] })).toEqual({
       action: 'wait',
       reason: 'no-espn-final',
     })
   })
 
-  it('waits when no source has the final yet', () => {
-    expect(classifyMatch({ ...base, minutesPastKickoff: 999 })).toEqual({
-      action: 'wait',
-      reason: 'no-espn-final',
-    })
+  it('waits when ESPN has not called it final yet', () => {
+    expect(classifyMatch({ ...base })).toEqual({ action: 'wait', reason: 'no-espn-final' })
   })
 
   it('eqFt compares score pairs and is null-safe', () => {

@@ -84,6 +84,30 @@ describe('applyEdit against the real cup.txt snapshot', () => {
   })
 })
 
+describe('cup_finals.txt (knockout) coverage', () => {
+  const finals = readFileSync(resolve(here, 'fixtures/cup-finals-snapshot.txt'), 'utf8')
+  const finalsLines = finals.split(/\r?\n/)
+  const knockoutMatches = MATCHES.filter((m) => m.stage !== 'Group')
+  // A knockout match line: "(NN) <time> UTC<off>  Home v Away  @ Venue".
+  const matchLines = finalsLines.filter((l) => /^[ \t]*\(\d+\)[ \t]+\d{1,2}:\d{2}[ \t]+UTC/.test(l))
+
+  it('knockouts live in cup_finals.txt — none leak into the group cup.txt', () => {
+    // (If this fails, the autofill is writing knockouts to the wrong file.)
+    expect(/Round of|Quarter-?final|Semi-?final|Third|Final/i.test(cupTxt)).toBe(false)
+  })
+
+  it('every knockout match number has a "(NN)" line in cup_finals.txt', () => {
+    const nums = new Set(matchLines.map((l) => Number(l.match(/\((\d+)\)/)[1])))
+    const missing = knockoutMatches.filter((m) => !nums.has(m.num)).map((m) => `#${m.num}`)
+    expect(missing, `knockout match numbers absent from cup_finals.txt: ${missing.join(', ')}`).toEqual([])
+  })
+
+  it('cup_finals lines have the " v " + "@ venue" shape our (NN)-aware regex needs', () => {
+    expect(matchLines.length).toBe(knockoutMatches.length)
+    expect(matchLines.every((l) => / v /.test(l) && /@/.test(l))).toBe(true)
+  })
+})
+
 describe('static data integrity', () => {
   it('every match references a known venue', () => {
     const missing = MATCHES.filter((m) => !VENUES[m.venue]).map((m) => `#${m.num} venue="${m.venue}"`)

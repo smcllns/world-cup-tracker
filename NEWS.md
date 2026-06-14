@@ -5,6 +5,10 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-14
+- **Shorter wait for TheSportsDB before the ESPN-only fallback:** lowered
+  `ESPN_ONLY_AFTER_MIN` 150→125 (≈ full time + ~10 min) so a confirmed-by-ESPN
+  final syncs sooner when TheSportsDB lags. (ESPN only counts as 'post'/final, so
+  the result is genuine; this only bounds the cross-check wait.)
 - **Knockout autofill would not have worked — two critical fixes (PR):** a deep
   scan of openfootball's 1930–2026 files (vs our writer) found that 2026 knockouts
   live in a **separate file** `2026--usa/cup_finals.txt` (with a `(NN)`

@@ -6,10 +6,12 @@
 import { normEspn, parseClock } from './cuptxt.mjs'
 import { normalizeTeam } from '../src/services/results.js'
 
-// Prefer ✓✓ (ESPN + TheSportsDB agree). But TheSportsDB often lags by tens of
-// minutes, so once a match is this far past kickoff (≈ full time + ~30 min) and
-// ESPN has confirmed the final, sync on ESPN alone rather than wait forever.
-export const ESPN_ONLY_AFTER_MIN = 150
+// Prefer ✓✓ (ESPN + TheSportsDB agree). But TheSportsDB often lags, so once a
+// match is this far past kickoff (≈ full time + ~10 min — give TheSportsDB a
+// short window) and ESPN has confirmed the final, sync on ESPN alone rather than
+// wait longer. (ESPN only counts when it reports the match 'post', so the result
+// is genuinely final regardless of this clock; this only bounds the cross-check wait.)
+export const ESPN_ONLY_AFTER_MIN = 125
 
 export const eqFt = (a, b) => Boolean(a && b && a[0] === b[0] && a[1] === b[1])
 

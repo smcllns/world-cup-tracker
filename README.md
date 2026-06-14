@@ -1,5 +1,7 @@
 # World Cup 2026 Schedule Viewer
 
+[![OpenFootball autofill](https://github.com/ismayc/world-cup-viewer/actions/workflows/openfootball-autofill.yml/badge.svg)](https://github.com/ismayc/world-cup-viewer/actions/workflows/openfootball-autofill.yml)
+
 A React + Vite web app showing all 104 matches of the 2026 FIFA World Cup
 (USA · Canada · Mexico) in **your** timezone, with where to watch, host
 city/stadium, a bracket, group standings, and live results.

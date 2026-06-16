@@ -4,6 +4,21 @@ A dated changelog for the World Cup 2026 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-06-15
+- **Fix: finished matches lost their yellow/red cards in the detail view.**
+  OpenFootball (the source of record) carries final scores + goals but no cards or
+  subs, and `applyLive` had been early-returning once OpenFootball had the score —
+  so the moment a match ended its ESPN card timeline was dropped. `applyLive` now
+  still overlays ESPN's cards/subs (oriented to our team order) onto a match that
+  already has an OpenFootball score, while leaving the score/goals untouched.
+- **Backfill cards for matches that finished before the live window.** ESPN drops
+  finished games from its rolling scoreboard after a couple of days, so older
+  matches (e.g. the June 11–12 openers) had no ESPN record to overlay at all. Added
+  `historyDates` + a one-time by-date ESPN fetch (`fetchLive(signal, dates)`),
+  merged as a backfill overlay beneath the live window. All 14 of the 15 finished
+  matches that had cards now show them (Germany 7–1 Curaçao genuinely had none).
+  +4 tests (173 total).
+
 ## 2026-06-14
 - **Post on ESPN's final immediately — no second-source wait (target: within ~10
   min of full time):** dropped the ✓✓-required gate. ESPN is now the trigger — the

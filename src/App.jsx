@@ -13,7 +13,7 @@ import { detectTimezone, formatDateLong, dayKey, liveState } from './utils/time.
 import { readState, writeState } from './utils/urlState.js'
 import { parseQuery, matchesSearch } from './utils/search.js'
 import { fetchResults, applyResults, RESULTS_SOURCE, openFootballFinalScore } from './services/results.js'
-import { fetchLive, applyLive, LIVE_SOURCE, espnFinalScore } from './services/espn.js'
+import { fetchLive, applyLive, LIVE_SOURCE, espnFinalScore, historyDates } from './services/espn.js'
 import { fetchBackup, BACKUP_SOURCE, sdbFinalScore } from './services/thesportsdb.js'
 import { annotateScoreChecks } from './services/reconcile.js'
 import { useFollow } from './context/follow.jsx'
@@ -96,6 +96,7 @@ export default function App() {
   //   • TheSportsDB (`backup`) — best-effort backup + final-score cross-check.
   const [results, setResults] = useState(null)
   const [live, setLive] = useState(null)
+  const [history, setHistory] = useState(null)
   const [backup, setBackup] = useState(null)
   const [resultsState, setResultsState] = useState('loading') // loading | ok | error
   const [updatedAt, setUpdatedAt] = useState(null)
@@ -130,18 +131,31 @@ export default function App() {
     return () => abortRef.current?.abort()
   }, [loadResults])
 
+  // Backfill cards/subs for matches that finished before the live window. ESPN
+  // drops them from the rolling scoreboard after a couple of days, so without an
+  // explicit by-date fetch their detail timelines lose their 🟨🟥. This data is
+  // static once a match ends, so we fetch it once (no polling) and overlay it
+  // beneath the live window, which still wins for anything recent.
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetchLive(ctrl.signal, historyDates(MATCHES))
+      .then((map) => map.size && setHistory(map))
+      .catch(() => {}) // best-effort; live + OpenFootball still render
+    return () => ctrl.abort()
+  }, [])
+
   // Merge into the schedule (immutably): OpenFootball first (source of record),
   // overlay ESPN's live/just-finished scores where OpenFootball has none, then
   // annotate each final with how many independent sources confirm it.
   const matches = useMemo(() => {
-    const merged = applyLive(applyResults(MATCHES, results), live)
+    const merged = applyLive(applyLive(applyResults(MATCHES, results), history), live)
     const sources = [
       results && { name: RESULTS_SOURCE.name, score: (m) => openFootballFinalScore(m, results) },
       live && { name: LIVE_SOURCE.name, score: (m) => espnFinalScore(m, live) },
       backup && { name: BACKUP_SOURCE.name, score: (m) => sdbFinalScore(m, backup) },
     ].filter(Boolean)
     return annotateScoreChecks(merged, sources)
-  }, [results, live, backup])
+  }, [results, live, history, backup])
   const finishedCount = useMemo(() => matches.filter((m) => m.score).length, [matches])
   const liveCount = useMemo(() => matches.filter((m) => m.live).length, [matches])
 

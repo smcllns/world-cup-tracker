@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { fetchLive, applyLive, espnFinalScore, scoreboardDates } from '../src/services/espn.js'
+import { fetchLive, applyLive, espnFinalScore, scoreboardDates, historyDates } from '../src/services/espn.js'
 import { pairKey } from '../src/services/results.js'
 import { MATCHES } from '../src/data/matches.js'
 
@@ -12,6 +12,25 @@ describe('scoreboardDates', () => {
     // 00:00 ET June 14 = 04:00Z June 14 — must include 20260614, which ESPN's
     // default slate was lagging behind.
     expect(scoreboardDates(new Date('2026-06-14T04:00:00Z'))).toContain('20260614')
+  })
+})
+
+describe('historyDates', () => {
+  it('lists distinct UTC dates of already-finished matches, excluding the live window', () => {
+    // Base: June 16 noon UTC. Live window (scoreboardDates) = Jun 15/16/17, so
+    // those are excluded; earlier match days (Jun 11–14) are the backfill set.
+    const dates = historyDates(MATCHES, new Date('2026-06-16T12:00:00Z'))
+    expect(dates).toEqual(['20260611', '20260612', '20260613', '20260614'])
+  })
+
+  it('is empty before the tournament starts (nothing has kicked off)', () => {
+    expect(historyDates(MATCHES, new Date('2026-06-01T00:00:00Z'))).toEqual([])
+  })
+
+  it('excludes matches that have not kicked off yet', () => {
+    const dates = historyDates(MATCHES, new Date('2026-06-13T12:00:00Z'))
+    // Jun 12/13/14 are in the live window; only Jun 11 is older + finished.
+    expect(dates).toEqual(['20260611'])
   })
 })
 
@@ -104,15 +123,51 @@ describe('applyLive (overlay onto the merged schedule)', () => {
     expect(m.liveSource).toBe(true)
   })
 
-  it('defers to OpenFootball: a match that already has a score is untouched', () => {
+  it('defers to OpenFootball on score, but still overlays ESPN cards/subs (the missing-cards bug)', () => {
+    // OpenFootball carries the final score + goals, but never cards/subs. A
+    // finished match must keep OpenFootball's score yet gain ESPN's card timeline.
     const withScore = MATCHES.map((m) => (m.num === 1 ? { ...m, score: [0, 0] } : m))
     const map = new Map([
-      [pairKey('Mexico', 'South Africa'), { home: 'Mexico', away: 'South Africa', score: [2, 1], state: 'in', clock: "80'" }],
+      [
+        pairKey('Mexico', 'South Africa'),
+        {
+          home: 'Mexico',
+          away: 'South Africa',
+          score: [2, 1],
+          state: 'post',
+          clock: 'FT',
+          cards: { home: [{ name: 'C. Montes', minute: 40, color: 'yellow' }], away: [] },
+          subs: { home: [], away: [{ minute: 75, names: ['Player'] }] },
+        },
+      ],
     ])
-    const merged = applyLive(withScore, map)
-    const m = merged.find((x) => x.num === 1)
-    expect(m.score).toEqual([0, 0]) // OpenFootball wins
-    expect(m.live).toBeUndefined()
+    const m = applyLive(withScore, map).find((x) => x.num === 1)
+    expect(m.score).toEqual([0, 0]) // OpenFootball wins the score
+    expect(m.live).toBeUndefined() // not flagged live
+    // ESPN home = Mexico = our t1, so cards/subs map straight through.
+    expect(m.cards.t1).toEqual([{ name: 'C. Montes', minute: 40, color: 'yellow' }])
+    expect(m.subs.t2).toEqual([{ minute: 75, names: ['Player'] }])
+  })
+
+  it('orients overlaid cards when ESPN home/away is the reverse of our order', () => {
+    const withScore = MATCHES.map((m) => (m.num === 1 ? { ...m, score: [2, 1] } : m))
+    // ESPN home = South Africa (our t2): the away card belongs to Mexico (our t1).
+    const map = new Map([
+      [
+        pairKey('Mexico', 'South Africa'),
+        {
+          home: 'South Africa',
+          away: 'Mexico',
+          score: [1, 2],
+          state: 'post',
+          cards: { home: [{ name: 'SA Player', minute: 20, color: 'yellow' }], away: [{ name: 'MX Player', minute: 30, color: 'red' }] },
+          subs: { home: [], away: [] },
+        },
+      ],
+    ])
+    const m = applyLive(withScore, map).find((x) => x.num === 1)
+    expect(m.cards.t1).toEqual([{ name: 'MX Player', minute: 30, color: 'red' }])
+    expect(m.cards.t2).toEqual([{ name: 'SA Player', minute: 20, color: 'yellow' }])
   })
 
   it('resolves a knockout placeholder by kickoff instant and overlays its score', () => {

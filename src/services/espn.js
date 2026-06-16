@@ -103,13 +103,34 @@ export function scoreboardDates(base = new Date()) {
   return [ymd(-1), ymd(0), ymd(1)]
 }
 
+// Distinct UTC dates (YYYYMMDD) of matches that have already kicked off but fall
+// OUTSIDE the live window (i.e. older than yesterday). ESPN drops finished games
+// from the rolling scoreboard after a couple of days, so without this their
+// cards/subs would never reach the detail view. The data is static once a match
+// ends, so App fetches these once and merges them as a backfill overlay. The live
+// window (scoreboardDates) covers everything recent; we exclude it here so the
+// poll and the backfill never fight over the same dates.
+export function historyDates(matches, base = new Date()) {
+  const inWindow = new Set(scoreboardDates(base))
+  const now = base.getTime()
+  const out = new Set()
+  for (const m of matches) {
+    if (!m.ko) continue
+    if (new Date(m.ko).getTime() > now) continue // not yet kicked off
+    const d = new Date(m.ko).toISOString().slice(0, 10).replace(/-/g, '')
+    if (!inWindow.has(d)) out.add(d)
+  }
+  return [...out]
+}
+
 // ESPN's default scoreboard returns only a single date's slate and can lag a day,
 // so a late-night match (filed under a different ESPN date) is missing from it —
 // which left such games showing "Live" with no score or clock in the app. Fetch
-// the dates around now explicitly and merge their events (deduped).
-async function scoreboardEvents(signal) {
+// the given dates explicitly and merge their events (deduped).
+async function scoreboardEvents(signal, dates = scoreboardDates()) {
+  if (!dates.length) return []
   const results = await Promise.allSettled(
-    scoreboardDates().map((d) =>
+    dates.map((d) =>
       fetch(`${LIVE_SOURCE.url}?dates=${d}`, { signal, cache: 'no-store' }).then((r) =>
         r.ok ? r.json() : null,
       ),
@@ -136,9 +157,9 @@ async function scoreboardEvents(signal) {
 // twice: by team pair (unique per tournament for played matches; survives
 // simultaneous group kickoffs) and by kickoff instant (lets us match knockout
 // games whose teams our static schedule still shows as placeholders).
-export async function fetchLive(signal) {
+export async function fetchLive(signal, dates) {
   const map = new Map()
-  for (const ev of await scoreboardEvents(signal)) {
+  for (const ev of await scoreboardEvents(signal, dates)) {
     const comp = ev.competitions?.[0]
     if (!comp || !Array.isArray(comp.competitors)) continue
     const home = comp.competitors.find((c) => c.homeAway === 'home')
@@ -193,9 +214,20 @@ export function applyLive(matches, liveMap) {
     const rec = liveRecordFor(m, liveMap)
     if (!rec) return m
 
-    // OpenFootball already recorded this match -> it wins. (But still let ESPN
-    // resolve placeholder team names if OpenFootball somehow hasn't.)
-    if (Array.isArray(m.score)) return m
+    // OpenFootball already recorded this match -> its score & goals win (it's the
+    // source of record). But OpenFootball's feed carries no cards or subs, so we
+    // still overlay ESPN's event timelines (oriented to t1/t2) — otherwise a
+    // finished match loses its yellow/red cards in the detail view.
+    if (Array.isArray(m.score)) {
+      const alignedOf = normalizeTeam(m.t1) === rec.home
+      const orientOf = (o) => (alignedOf ? { t1: o.home, t2: o.away } : { t1: o.away, t2: o.home })
+      const out = { ...m }
+      for (const key of ['cards', 'subs']) {
+        const o = rec[key]
+        if (o && (o.home.length || o.away.length)) out[key] = orientOf(o)
+      }
+      return out
+    }
 
     const bothReal = isRealTeam(m.t1) && isRealTeam(m.t2)
 

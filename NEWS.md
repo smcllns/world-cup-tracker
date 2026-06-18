@@ -4,6 +4,14 @@ A dated changelog for the World Cup 2026 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-06-18
+- **Bulk "Hide/Show past days" button on the Schedule.** Past days already fold
+  closed by default and each has its own toggle, but deep into group play that
+  meant re-collapsing them one by one after a look-back. A new control in the
+  Schedule controls bar (shown only when there are past days, with a count) now
+  collapses or expands every past day in one click; per-day toggles still work as
+  before. +1 test (191 total).
+
 ## 2026-06-16
 - **Fix: a feed gap could flood you with dozens of stale goal alerts.** The
   "seen goals" snapshot was replaced every poll, so a transient ESPN gap (a poll

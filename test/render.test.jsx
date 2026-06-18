@@ -124,6 +124,24 @@ describe('App renders (smoke test)', () => {
       vi.useRealTimers()
     }
   })
+
+  it('bulk-expands and re-collapses all past days from one button', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-20T16:00:00Z'))
+    try {
+      render(<App />)
+      const opener = screen.getByRole('button', { name: /June 11, 2026/ })
+      expect(opener).toHaveAttribute('aria-expanded', 'false')
+      // "Show past days" expands every past day at once.
+      fireEvent.click(screen.getByRole('button', { name: /Show past days/ }))
+      expect(opener).toHaveAttribute('aria-expanded', 'true')
+      // The button flips to "Hide past days", which re-collapses them all.
+      fireEvent.click(screen.getByRole('button', { name: /Hide past days/ }))
+      expect(opener).toHaveAttribute('aria-expanded', 'false')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('Follow teams', () => {

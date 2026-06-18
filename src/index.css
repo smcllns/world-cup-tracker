@@ -125,6 +125,32 @@ body {
   cursor: pointer;
 }
 .clear-mini:hover { color: var(--accent-2); border-color: var(--accent-2); }
+.pastdays-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.pastdays-btn:hover { color: var(--text); border-color: var(--accent); }
+.pastdays-btn .myteams-count {
+  background: var(--bg);
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ---------- Filters ---------- */
 .filters {

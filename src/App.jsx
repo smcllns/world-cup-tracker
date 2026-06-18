@@ -304,6 +304,21 @@ export default function App() {
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [filtered, tz])
 
+  // Bulk fold control for past days. They already collapse individually by
+  // default; this lets you re-collapse everything you've opened (or expand it
+  // all) in one click, which matters once group play piles up many past days.
+  const pastDayKeys = useMemo(
+    () => days.map(([k]) => k).filter((k) => k < todayKey),
+    [days, todayKey],
+  )
+  const allPastCollapsed = pastDayKeys.length > 0 && pastDayKeys.every((k) => dayCollapsed(k))
+  const setAllPastCollapsed = (collapsed) =>
+    setCollapsedDays((c) => {
+      const next = { ...c }
+      for (const k of pastDayKeys) next[k] = collapsed
+      return next
+    })
+
   return (
     <DetailContext.Provider value={setDetailMatch}>
     <div className="app">
@@ -441,6 +456,17 @@ export default function App() {
                 title="Show only matches with teams you follow"
               >
                 ⭐ My Teams <span className="myteams-count">{followCount}</span>
+              </button>
+            )}
+            {view === 'schedule' && pastDayKeys.length > 0 && (
+              <button
+                className="pastdays-btn"
+                onClick={() => setAllPastCollapsed(!allPastCollapsed)}
+                title={allPastCollapsed ? 'Expand all past days' : 'Collapse all past days'}
+              >
+                <span className="chev" aria-hidden="true">{allPastCollapsed ? '▸' : '▾'}</span>
+                {allPastCollapsed ? 'Show past days' : 'Hide past days'}
+                <span className="myteams-count">{pastDayKeys.length}</span>
               </button>
             )}
             {activeCount > 0 && (

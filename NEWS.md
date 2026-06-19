@@ -4,6 +4,18 @@ A dated changelog for the World Cup 2026 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-06-19
+- **Fix: wrong group tie-breaker order (head-to-head vs goal difference).** The
+  ranking used the pre-2026 order (overall goal difference before head-to-head),
+  but FIFA changed it for 2026: head-to-head now comes FIRST (matching the UEFA
+  Euro), then overall GD, then goals, then conduct score / FIFA ranking (drawing
+  of lots was removed). `rankGroup` now applies head-to-head among teams level on
+  points before overall GD, re-applying it to any still-tied subset. This
+  corrects the standings, `computeQualification`, and the clinch engine — e.g. a
+  team that has beaten the only side that can match its points now correctly
+  reads "🥇 Won group" rather than "Through". Sources: FIFA.com tie-breaker
+  article, FOX Sports. +1 test (202 total).
+
 ## 2026-06-18
 - **Fix: clinch detection counted a live match's running score as final.** A
   team could read "clinched" mid-match (e.g. while it was still 1–0 up) because

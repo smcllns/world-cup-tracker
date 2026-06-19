@@ -1,17 +1,23 @@
-// Group ranking + qualification using the official FIFA World Cup tie-breakers
-// (Regulations, Art. on group ranking). Order of criteria:
+// Group ranking + qualification using the official 2026 FIFA World Cup tie-
+// breakers. FIFA CHANGED the order for 2026: head-to-head now comes BEFORE
+// overall goal difference (matching the UEFA Euro), and drawing of lots was
+// replaced by FIFA ranking. Criteria, applied to teams level on points:
 //   1. Points in all group matches
-//   2. Goal difference in all group matches
-//   3. Goals scored in all group matches
-//   If two or more teams are still equal, apply, AMONG THOSE TIED TEAMS only:
-//   4. Points in head-to-head matches
-//   5. Goal difference in head-to-head matches
-//   6. Goals scored in head-to-head matches
-//   7. Fair-play points, then 8. drawing of lots — NOT computable here (no card
-//      data); we fall back to a deterministic alphabetical order and flag it.
+//   Then, among teams still level, applied to matches BETWEEN THEM only:
+//   2. Head-to-head points
+//   3. Head-to-head goal difference
+//   4. Head-to-head goals scored
+//   — re-applied to any subset that's still tied after the above —
+//   If still equal, back to all group matches:
+//   5. Goal difference in all group matches
+//   6. Goals scored in all group matches
+//   7. Team conduct score, then 8. FIFA World Ranking — NOT computable here
+//      (no card / ranking data); we fall back to a deterministic alphabetical
+//      order and flag it.
 //
-// Top two of each group advance; the eight best third-placed teams (ranked by
-// criteria 1–3 across groups) also advance to the Round of 32.
+// Top two of each group advance; the eight best third-placed teams also advance
+// to the Round of 32. Third place is compared ACROSS groups, where head-to-head
+// can't apply (those teams never met), so it uses criteria 1 then 5–6.
 
 import { TEAMS } from '../data/teams.js'
 
@@ -60,34 +66,62 @@ function headToHead(names, group, matches) {
   return sub
 }
 
+// Order teams that are level on points per the 2026 criteria: head-to-head
+// (points, GD, goals) among the tied teams first, re-applied to any subset that
+// stays tied, and only then overall GD / goals / alphabetical fallback.
+function resolveLevelOnPoints(tied, group, matches) {
+  if (tied.length === 1) return tied
+  // Criteria 2–4: head-to-head sub-table among exactly these teams.
+  const sub = headToHead(tied.map((t) => t.name), group, matches)
+  const sorted = [...tied].sort(
+    (a, b) =>
+      sub[b.name].Pts - sub[a.name].Pts ||
+      sub[b.name].GD - sub[a.name].GD ||
+      sub[b.name].GF - sub[a.name].GF,
+  )
+  const out = []
+  let i = 0
+  while (i < sorted.length) {
+    let j = i + 1
+    while (
+      j < sorted.length &&
+      sub[sorted[j].name].Pts === sub[sorted[i].name].Pts &&
+      sub[sorted[j].name].GD === sub[sorted[i].name].GD &&
+      sub[sorted[j].name].GF === sub[sorted[i].name].GF
+    ) j++
+    const cluster = sorted.slice(i, j)
+    if (cluster.length > 1 && cluster.length < tied.length) {
+      // Head-to-head separated some teams; re-apply it to this still-tied subset
+      // (a fresh sub-table among only these teams), per the regulations.
+      out.push(...resolveLevelOnPoints(cluster, group, matches))
+    } else {
+      // Still fully tied on head-to-head (no separation possible) — fall through
+      // to overall GD, overall goals, then a stable alphabetical order (conduct
+      // score / FIFA ranking aren't computable here).
+      out.push(
+        ...[...cluster].sort(
+          (a, b) => b.GD - a.GD || b.GF - a.GF || a.name.localeCompare(b.name),
+        ),
+      )
+    }
+    i = j
+  }
+  return out
+}
+
 export function rankGroup(group, matches) {
   const rows = Object.values(baseStats(group, matches))
-  // Criteria 1–3 (overall).
-  rows.sort((a, b) => b.Pts - a.Pts || b.GD - a.GD || b.GF - a.GF)
+  // Criterion 1: points. Then break ties among teams level on points with the
+  // 2026 order (head-to-head BEFORE overall goal difference).
+  rows.sort((a, b) => b.Pts - a.Pts)
 
-  // Resolve clusters tied on all of (Pts, GD, GF) via head-to-head (4–6).
   const ordered = []
   let i = 0
   while (i < rows.length) {
     let j = i + 1
-    while (
-      j < rows.length &&
-      rows[j].Pts === rows[i].Pts &&
-      rows[j].GD === rows[i].GD &&
-      rows[j].GF === rows[i].GF
-    ) j++
+    while (j < rows.length && rows[j].Pts === rows[i].Pts) j++
     const tied = rows.slice(i, j)
-    if (tied.length > 1) {
-      const sub = headToHead(tied.map((t) => t.name), group, matches)
-      tied.sort(
-        (a, b) =>
-          sub[b.name].Pts - sub[a.name].Pts ||
-          sub[b.name].GD - sub[a.name].GD ||
-          sub[b.name].GF - sub[a.name].GF ||
-          a.name.localeCompare(b.name), // fair-play/lots unavailable -> stable fallback
-      )
-    }
-    ordered.push(...tied)
+    ordered.push(...(tied.length > 1 ? resolveLevelOnPoints(tied, group, matches) : tied))
     i = j
   }
   return ordered.map((r, idx) => ({ ...r, rank: idx + 1 }))

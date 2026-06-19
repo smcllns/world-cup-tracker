@@ -24,7 +24,7 @@ function withGroupScores(group, results) {
 
 describe('rankGroup — FIFA tie-breakers', () => {
   // Group C teams: Brazil, Morocco, Haiti, Scotland.
-  it('orders by points, then GD, then GF (overall criteria 1–3)', () => {
+  it('orders by points when points are distinct', () => {
     const C = withGroupScores('C', [
       ['Brazil', 'Morocco', 2, 0],
       ['Brazil', 'Haiti', 3, 0],
@@ -65,6 +65,29 @@ describe('rankGroup — FIFA tie-breakers', () => {
     // In a perfect 3-way cycle with identical H2H, all stay tied; fallback is
     // alphabetical and deterministic.
     expect(rows.every((r) => r.rank >= 1 && r.rank <= 4)).toBe(true)
+  })
+
+  it('applies head-to-head BEFORE overall goal difference (2026 rule)', () => {
+    // Brazil and Morocco both finish on 6 points. Brazil has a far better
+    // OVERALL goal difference (+9), but Morocco beat Brazil head-to-head. Under
+    // the 2026 rules head-to-head wins, so Morocco must rank above Brazil — the
+    // exact case the old (pre-2026) order got wrong.
+    const C = withGroupScores('C', [
+      ['Morocco', 'Brazil', 1, 0], // H2H: Morocco beats Brazil
+      ['Brazil', 'Haiti', 5, 0],
+      ['Brazil', 'Scotland', 5, 0], // Brazil runs up a big overall GD
+      ['Morocco', 'Haiti', 1, 0],
+      ['Scotland', 'Morocco', 1, 0], // keeps Morocco on 6 with a slim GD
+      ['Haiti', 'Scotland', 1, 0],
+    ])
+    const rows = rankGroup('C', C)
+    const brazil = rows.find((r) => r.name === 'Brazil')
+    const morocco = rows.find((r) => r.name === 'Morocco')
+    expect(brazil.Pts).toBe(6)
+    expect(morocco.Pts).toBe(6)
+    expect(brazil.GD).toBeGreaterThan(morocco.GD) // Brazil far better on overall GD
+    // …yet Morocco ranks first on head-to-head.
+    expect(rows.slice(0, 2).map((r) => r.name)).toEqual(['Morocco', 'Brazil'])
   })
 
   it('uses head-to-head to separate exactly two tied teams', () => {

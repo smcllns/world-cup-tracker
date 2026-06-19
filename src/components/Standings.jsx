@@ -99,7 +99,6 @@ function BestThirds({ qual }) {
                 <span className="rank">{i + 1}</span>
                 <span className="team-flag">{r.flag}</span>
                 <span className="row-team">{r.name}</span>
-                {i < 8 && <span className="q-badge q-in" title="In the qualifying 8">✓</span>}
               </td>
               <td>{r.group}</td>
               <td>{r.P}</td>

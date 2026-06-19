@@ -5,6 +5,10 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-19
+- **Best third-placed table: drop the ✓ badge, keep the light-green row.** The
+  qualifying eight already get the same light-green highlight as the group
+  leaders; the extra ✓ looked too much like the "Through" clinch badge, so it's
+  removed.
 - **Fix: clinch engine missed real "Through" verdicts (e.g. USA in Group D).**
   Two bugs: (1) a lopsided group with several games left blew the scoreline-
   enumeration budget, so the engine bailed and showed no status for the whole

@@ -65,7 +65,7 @@ export const MATCHES = [
   { num: 30, stage: 'Group', group: 'C', t1: 'Scotland', t2: 'Morocco', venue: 'gillette', ko: '2026-06-19T18:00:00-04:00' },
   { num: 31, stage: 'Group', group: 'C', t1: 'Brazil', t2: 'Haiti', venue: 'linc', ko: '2026-06-19T20:30:00-04:00' },
   // June 20
-  { num: 32, stage: 'Group', group: 'D', t1: 'Türkiye', t2: 'Paraguay', venue: 'levis', ko: '2026-06-20T00:00:00-04:00' },
+  { num: 32, stage: 'Group', group: 'D', t1: 'Türkiye', t2: 'Paraguay', venue: 'levis', ko: '2026-06-19T23:00:00-04:00' },
   { num: 33, stage: 'Group', group: 'F', t1: 'Netherlands', t2: 'Sweden', venue: 'nrg', ko: '2026-06-20T13:00:00-04:00' },
   { num: 34, stage: 'Group', group: 'E', t1: 'Germany', t2: 'Ivory Coast', venue: 'bmo', ko: '2026-06-20T16:00:00-04:00' },
   { num: 35, stage: 'Group', group: 'E', t1: 'Ecuador', t2: 'Curaçao', venue: 'arrowhead', ko: '2026-06-20T20:00:00-04:00' },

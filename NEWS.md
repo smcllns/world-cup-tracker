@@ -9,11 +9,12 @@ data/source updates, deployment). Newest day on top.
   now shows where its current 1st / 2nd / (qualifying) 3rd would land in the
   Round of 32 — with concrete opponents — based on the live standings, like the
   BBC's group pages. Winner/runner-up slots resolve directly from the table; the
-  eight qualifying third-placed teams are matched to the eight "3rd X/Y/Z" slots
-  using FIFA's per-slot candidate-group lists. (See the PR note: that matching
-  follows FIFA's group constraints but, for combinations with more than one valid
-  arrangement, may differ from FIFA's specific 495-row published table.) New
-  `src/utils/asItStands.js`; +4 tests.
+  eight qualifying thirds are placed using **FIFA's official Annexe C allocation**
+  — all 495 combinations, parsed verbatim from the Regulations PDF and validated
+  against the Art. 12.6 candidate lists (`src/data/thirdPlaceCombinations.js`).
+  (Early in the group stage, before eight thirds have data, it falls back to
+  constraint-matching the candidate lists.) New `src/utils/asItStands.js`;
+  +7 tests.
 - **FIFA World Ranking now breaks otherwise-tied standings.** When teams are
   level on points, head-to-head, goal difference, and goals scored, the app used
   a placeholder alphabetical order — which wrongly put e.g. Cape Verde ahead of

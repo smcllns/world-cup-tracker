@@ -29,7 +29,7 @@ function parseSlot(label) {
 // Fallback only: bipartite matching (Kuhn's) of qualifying third-place groups to
 // 3rd-place slots over the candidate lists. Used when the current combination
 // isn't a complete 8-group set the Annexe C table covers.
-function matchThirds(groups, slots) {
+export function matchThirds(groups, slots) {
   const groupForSlot = new Map()
   const assign = (group, visited) => {
     for (const s of slots) {
@@ -92,9 +92,12 @@ export function projectKnockout(matches) {
       const w = winnerSide?.slot.group
       if (w && winnerToThird[w]) thirdSlotGroup.set(s, winnerToThird[w])
     }
-  } else {
+  } /* v8 ignore start */ else {
+    // Unreachable via the public API: the Annexe C table holds all C(12,8)=495
+    // eight-group combos, and there are always exactly 12 thirds (one per real
+    // group), so a combo is always found. matchThirds is unit-tested directly.
     for (const [s, g] of matchThirds(qualifyingThirdGroups, thirdSides)) thirdSlotGroup.set(s, g)
-  }
+  } /* v8 ignore stop */
 
   const teamForSide = (s) => {
     if (!s) return null

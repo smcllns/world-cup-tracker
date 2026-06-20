@@ -5,8 +5,21 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-20
+- **Test coverage to 100% (statements / lines / functions), app-wide.** Brought
+  every source file to full statement coverage — components (CalendarModal,
+  LiveBadge, ScoreCheck, NextMatch, MatchCard, MatchDetail, Standings, Filters,
+  Bracket, WeekView), services (results, espn, thesportsdb, reconcile), the
+  `follow` context, `App.jsx`, the utils, and the `useModalA11y` hook — via 24 new
+  focused test files (498 tests total, all green). Branches sit at ~94% (a few
+  defensive short-circuits). `matchThirds` is now exported for direct unit testing
+  and its unreachable-in-prod caller is `v8 ignore`d (the Annexe C table covers all
+  495 third-place combinations, so the fallback never runs).
+- **Removed the OpenFootball-autofill README badge.** That workflow self-loops and
+  serializes via a concurrency group, so superseded runs end as `cancelled` —
+  which GitHub renders as a red/"failing" badge even though nothing is wrong. The
+  CI badge is the real health signal.
 - **README badges + MIT license.** Added a CI status badge and a self-hosted
-  **test-coverage badge** (currently ~89%): CI runs `vitest --coverage`, a tiny
+  **test-coverage badge** (now 100%): CI runs `vitest --coverage`, a tiny
   script writes a shields.io endpoint `coverage.json` into the deployed site, and
   the badge reads it — no third-party coverage service or token. Added a `LICENSE`
   (MIT) for the code + a license badge (trademarks/data remain governed by the

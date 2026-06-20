@@ -1,0 +1,38 @@
+name: Daily schedule check
+
+# Each morning, well before the day's earliest kickoff, compare our stored
+# kickoff times against ESPN's scheduled times for every UPCOMING match (the day
+# ahead and the rest of the week) and email a report if anything moved. This is
+# the proactive review; feed-freshness.yml runs the same check hourly as a
+# red-build backstop.
+#
+# Timing: 12:00 UTC = 05:00 America/Phoenix (MST, UTC-7 year-round). The earliest
+# group games kick off at 12:00 ET (09:00 MST), so 05:00 MST is hours ahead.
+# (GitHub's scheduler can lag; that's fine for a once-a-day review.)
+#
+# REPORT mode: emails any changes via Gmail SMTP and exits 0 (green job — it's a
+# notifier, not a gate). No npm packages, so no `npm ci`.
+#
+# Secrets: MAIL_USERNAME + MAIL_PASSWORD (Gmail App Password). Without them the
+# check still runs and logs, just doesn't email.
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Compare kickoff times vs ESPN
+    runs-on: ubuntu-latest
+    env:
+      MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+      MAIL_TO: chester.ismay@gmail.com
+      SCHEDULE_REPORT_ONLY: '1' # email changes, but keep the job green
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - run: node scripts/check-schedule-drift.mjs

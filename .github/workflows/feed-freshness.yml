@@ -32,3 +32,9 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # raises the GitHub API rate limit
+      # Schedule-drift guard: fails (→ email) if any UPCOMING match's stored
+      # kickoff no longer matches ESPN's scheduled time (a reschedule). The
+      # detailed daily report goes out via schedule-check.yml; this is the
+      # continuous hourly backstop.
+      - run: npm run check:schedule
+        if: always()

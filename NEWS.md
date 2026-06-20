@@ -5,6 +5,18 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-19
+- **Schedule-drift monitoring so a reschedule can't slip by again.** Our kickoff
+  times were static (validated once), so nothing flagged FIFA moving M32 — it was
+  only caught by eye. New `check:schedule` compares every upcoming match's stored
+  kickoff against ESPN's scheduled time (reusing the app's team-name resolution;
+  knockout placeholders matched by venue, incl. the Azteca→Banorte rename) and
+  reports anything off by ≥5 min. It runs two ways: hourly via feed-freshness
+  (red build → email backstop) and every morning at 05:00 MST (before the day's
+  games) via a new `schedule-check.yml` that emails a report of any changes for
+  the day/week ahead. Confirmed M32 was a genuine FIFA move (a Dec 27 2025
+  archive showed our original 9 PM PT) and that no other game in the rest of
+  group play is off. New `scripts/schedule-core.mjs` + `check-schedule-drift.mjs`;
+  +5 tests.
 - **Schedule fix: M32 (Türkiye v Paraguay) kickoff was off by 1 hour.** The app
   had 00:00 ET (June 20) but the actual kickoff is 23:00 ET (June 19), so it
   showed as upcoming while already in progress. Confirmed against ESPN (live at

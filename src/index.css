@@ -1523,6 +1523,20 @@ select {
   display: block;
 }
 
+.group-live {
+  margin-left: 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--live);
+  animation: pulse 1.4s infinite;
+}
+.row-live-dot {
+  margin-left: 6px;
+  font-size: 0.58rem;
+  color: var(--live);
+  animation: pulse 1.4s infinite;
+}
+
 .standings-toolbar { display: flex; justify-content: flex-end; margin: -6px 0 14px; }
 .ais-toggle {
   display: inline-flex;

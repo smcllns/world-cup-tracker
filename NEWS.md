@@ -5,6 +5,11 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-20
+- **Live matches blink in the Groups tab.** Because the standings and "As it
+  stands" reflect in-progress scores, any group with a match underway now shows a
+  pulsing "● LIVE" marker in its header and a blinking dot on the two teams
+  playing — so it's clear the table/projection are provisional and updating. Uses
+  the existing live colour + pulse. +2 tests (coverage stays 100%).
 - **Test coverage to 100% (statements / lines / functions), app-wide.** Brought
   every source file to full statement coverage — components (CalendarModal,
   LiveBadge, ScoreCheck, NextMatch, MatchCard, MatchDetail, Standings, Filters,

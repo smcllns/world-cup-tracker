@@ -5,6 +5,17 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-20
+- **Schedule-drift check is now FIFA-anchored & multi-source.** Instead of
+  trusting ESPN alone (or making you the tiebreaker), `check:schedule` now pulls
+  four free/keyless feeds — **FIFA's official data API as the authority**, plus
+  ESPN, TheSportsDB, and OpenFootball as corroboration — and validates **all 72
+  group matches** by team pair. If FIFA disagrees with our stored kickoff, that's
+  the answer (the email gives FIFA's time and which feeds back it up, so you just
+  update the data); if FIFA confirms us but a feed is off, it's logged as a feed
+  glitch, not an alarm; if FIFA is unreachable, it falls back to requiring two
+  feeds to agree. Verified live: all 72 group matches agree across all four
+  sources, FIFA included. `scripts/schedule-core.mjs` rewritten; tests updated.
+
 - **Hardened the test suite (+21 tests).** Added focused coverage for the
   correctness-critical logic where bugs surfaced this week: more `qualification`
   tie-breaker scenarios (3-way head-to-head cycle → overall GD, level-on-points +

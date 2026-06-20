@@ -1,30 +1,41 @@
-// Schedule-drift check: compares our stored kickoff times against ESPN's
-// scheduled times for every UPCOMING match and reports any that have moved.
-// This is what would have caught M32 (Türkiye v Paraguay) moving an hour
-// earlier — our times are static (validated once), so without this nothing in
-// the pipeline notices a reschedule until a human sees a match live early.
+// Schedule-drift check, anchored to FIFA's own data so nobody has to adjudicate
+// and we don't rely on the secondary feeds being right.
 //
-// Two ways it runs:
-//   • hourly via feed-freshness.yml — exits 1 on drift, so the job goes red and
-//     GitHub emails you (a continuous backstop).
-//   • each morning via schedule-check.yml (early MST, before the day's games) —
-//     with SCHEDULE_REPORT_ONLY=1 it emails a report of changes for the week
-//     ahead and exits 0 (a proactive daily review, not a gate).
+// Sources (all free, keyless, fetched with plain fetch):
+//   • FIFA  — api.fifa.com calendar (the AUTHORITY; its time is the answer)
+//   • ESPN, TheSportsDB, OpenFootball — corroboration / backup if FIFA is down
 //
-// Uses only Node built-ins + repo source (no npm packages); email is sent via
-// Gmail SMTP through python3 (preinstalled on the runner), same as the autofill.
+// For every GROUP match (teams are known, so all four can be matched by team
+// pair) we compare our stored kickoff to FIFA's. If FIFA differs → drift (the
+// email says FIFA's time and which feeds agree, so you just update the data). If
+// FIFA confirms us but a feed disagrees → a feed glitch, logged as a note. If
+// FIFA is unreachable for a match → we fall back to needing two feeds to agree.
 //
-// Run:   node scripts/check-schedule-drift.mjs
-// Tune:  THRESHOLD_MIN=5 (default), SCHEDULE_REPORT_ONLY=1 (email + exit 0)
+// Runs hourly via feed-freshness.yml (exit 1 → red build → email) and each
+// morning via schedule-check.yml (SCHEDULE_REPORT_ONLY=1 → email + exit 0).
+// Node built-ins + repo source only; email via Gmail SMTP through python3.
 
 import { execSync } from 'node:child_process'
 import { MATCHES } from '../src/data/matches.js'
 import { LIVE_SOURCE, normEspn } from '../src/services/espn.js'
-import { pairKey } from '../src/services/results.js'
+import { BACKUP_SOURCE, normSdb } from '../src/services/thesportsdb.js'
+import { RESULTS_SOURCE, normalizeTeam, pairKey } from '../src/services/results.js'
 import { compareSchedule } from './schedule-core.mjs'
 
-// Every UTC day a match falls on, ±1 (ESPN files some games under an adjacent
-// date), so the fetch window tracks the schedule rather than being hard-coded.
+// FIFA's official data API (keyless). idSeason 285023 = FIFA World Cup 26.
+const FIFA_URL =
+  'https://api.fifa.com/api/v3/calendar/matches?idCompetition=17&idSeason=285023&count=200&language=en'
+const FIFA_ALIASES = {
+  'Korea Republic': 'South Korea',
+  'Cabo Verde': 'Cape Verde',
+  'Congo DR': 'DR Congo',
+  "Côte d'Ivoire": 'Ivory Coast',
+  'IR Iran': 'Iran',
+  'Bosnia and Herzegovina': 'Bosnia & Herzegovina',
+}
+const normFifa = (n) => normalizeTeam(FIFA_ALIASES[n] || n)
+
+// Every UTC day a match falls on, ±1 (ESPN files some games under an adjacent date).
 function matchDates() {
   const days = new Set()
   for (const m of MATCHES) {
@@ -38,9 +49,27 @@ function matchDates() {
   return [...days].sort()
 }
 
-async function fetchEspnRecords() {
+async function fifaByKey() {
+  const map = new Map()
+  try {
+    const r = await fetch(FIFA_URL, { cache: 'no-store' })
+    if (!r.ok) return map
+    for (const m of (await r.json()).Results || []) {
+      const home = m.Home?.TeamName?.[0]?.Description
+      const away = m.Away?.TeamName?.[0]?.Description
+      if (!home || !away) continue
+      const t = new Date(m.Date).getTime()
+      if (!Number.isNaN(t)) map.set(pairKey(normFifa(home), normFifa(away)), t)
+    }
+  } catch {
+    /* best-effort */
+  }
+  return map
+}
+
+async function espnByKey() {
+  const map = new Map()
   const seen = new Set()
-  const recs = []
   for (const d of matchDates()) {
     try {
       const r = await fetch(`${LIVE_SOURCE.url}?dates=${d}`, { cache: 'no-store' })
@@ -53,59 +82,119 @@ async function fetchEspnRecords() {
         const cs = c?.competitors || []
         const home = cs.find((x) => x.homeAway === 'home')?.team?.displayName
         const away = cs.find((x) => x.homeAway === 'away')?.team?.displayName
-        recs.push({
-          key: home && away ? pairKey(normEspn(home), normEspn(away)) : null,
-          date: ev.date,
-          venue: c?.venue?.fullName,
-        })
+        const t = new Date(ev.date).getTime()
+        if (home && away && !Number.isNaN(t)) map.set(pairKey(normEspn(home), normEspn(away)), t)
       }
     } catch {
       /* best-effort per day */
     }
   }
-  return recs
+  return map
+}
+
+async function sdbByKey() {
+  const map = new Map()
+  try {
+    const r = await fetch(BACKUP_SOURCE.url, { cache: 'no-store' })
+    if (!r.ok) return map
+    for (const ev of (await r.json()).events || []) {
+      const home = ev.strHomeTeam
+      const away = ev.strAwayTeam
+      const raw = ev.strTimestamp
+        ? ev.strTimestamp + (/[zZ]|[+-]\d\d:?\d\d$/.test(ev.strTimestamp) ? '' : 'Z')
+        : ev.dateEvent && ev.strTime
+          ? `${ev.dateEvent}T${ev.strTime}Z`
+          : null
+      const t = raw ? new Date(raw).getTime() : NaN
+      if (home && away && !Number.isNaN(t)) map.set(pairKey(normSdb(home), normSdb(away)), t)
+    }
+  } catch {
+    /* best-effort */
+  }
+  return map
+}
+
+// OpenFootball time like "18:00 UTC-7" with a separate local date.
+function ofMs(date, time) {
+  const m = /^(\d{1,2}):(\d{2})\s*UTC\s*([+-])(\d{1,2})(?::?(\d{2}))?/.exec(time || '')
+  if (!m) return null
+  const [, hh, mm, sign, oh, om = '0'] = m
+  const offset = `${sign}${String(Number(oh)).padStart(2, '0')}:${String(Number(om)).padStart(2, '0')}`
+  const t = new Date(`${date}T${hh.padStart(2, '0')}:${mm}:00${offset}`).getTime()
+  return Number.isNaN(t) ? null : t
+}
+
+async function openFootballByKey() {
+  const map = new Map()
+  try {
+    const r = await fetch(RESULTS_SOURCE.url, { cache: 'no-store' })
+    if (!r.ok) return map
+    for (const m of (await r.json()).matches || []) {
+      if (!(m.round || '').startsWith('Matchday')) continue
+      const t = ofMs(m.date, m.time)
+      if (m.team1 && m.team2 && t != null) map.set(pairKey(normalizeTeam(m.team1), normalizeTeam(m.team2)), t)
+    }
+  } catch {
+    /* best-effort */
+  }
+  return map
 }
 
 async function main() {
   const reportOnly = process.env.SCHEDULE_REPORT_ONLY === '1'
   const thresholdMin = Number(process.env.THRESHOLD_MIN) || 5
 
-  const recs = await fetchEspnRecords()
-  if (!recs.length) {
-    console.error('Could not reach ESPN — skipping schedule check (no false alarm).')
+  const [fifa, espn, sdb, of] = await Promise.all([fifaByKey(), espnByKey(), sdbByKey(), openFootballByKey()])
+  const sources = [
+    { name: 'FIFA', byKey: fifa },
+    { name: 'ESPN', byKey: espn },
+    { name: 'TheSportsDB', byKey: sdb },
+    { name: 'OpenFootball', byKey: of },
+  ].filter((s) => s.byKey.size)
+
+  if (!sources.length) {
+    console.error('No source reachable — skipping schedule check (no false alarm).')
     return
   }
+  if (!fifa.size) console.warn('⚠ FIFA (authority) unreachable — falling back to feed consensus this run.')
 
-  // Upcoming only, with a 3h buffer so an in-progress game still counts.
-  const fromMs = Date.now() - 3 * 3600 * 1000
-  const { drifts, unmatched } = compareSchedule(MATCHES, recs, { thresholdMin, fromMs })
+  const groupMatches = MATCHES.filter((m) => m.stage === 'Group')
+  const { drifts, notes, unmatched } = compareSchedule(groupMatches, sources, { thresholdMin, authority: 'FIFA' })
 
   console.log(
-    `Schedule check: ${drifts.length} drift(s) >= ${thresholdMin}min among upcoming matches; ` +
-      `${unmatched.length} not matched to ESPN (likely TBD knockouts not yet posted).`,
+    `Schedule check (FIFA-anchored): ${groupMatches.length} group matches | ` +
+      `${drifts.length} drift(s) | ${notes.length} note(s) | ${unmatched.length} unmatched | ` +
+      `sources: ${sources.map((s) => s.name).join(', ')}`,
   )
   for (const d of drifts) {
-    console.log(
-      `  DRIFT M${d.num} ${d.t1} v ${d.t2}: stored ${d.storedISO} | ESPN ${d.espnISO} | ` +
-        `${d.diffMin > 0 ? '+' : ''}${d.diffMin}min`,
-    )
+    const via = d.via === 'authority' ? 'FIFA' : 'feed consensus'
+    const corr = d.corroborators.length ? ` (also: ${d.corroborators.join(', ')})` : ' (no feed corroboration yet)'
+    console.log(`  DRIFT M${d.num} ${d.t1} v ${d.t2}: ours ${d.storedISO} → ${via} ${d.authISO} | ${d.diffMin > 0 ? '+' : ''}${d.diffMin}min${corr}`)
+  }
+  for (const n of notes.filter((n) => n.kind !== 'authority-missing')) {
+    console.log(`  note: M${n.num} ${n.t1} v ${n.t2} — ${n.kind}${n.source ? ` (${n.source} ${n.theirISO})` : ''}`)
   }
 
   if (drifts.length) {
-    const lines = drifts.map(
-      (d) =>
-        `- M${d.num} ${d.t1} v ${d.t2}: ours ${d.storedISO} vs ESPN ${d.espnISO} ` +
-        `(${d.diffMin > 0 ? '+' : ''}${d.diffMin} min)`,
-    )
+    const lines = drifts.map((d) => {
+      const src = d.via === 'authority' ? 'FIFA' : 'feed consensus'
+      const corr = d.corroborators.length ? `; corroborated by ${d.corroborators.join(', ')}` : '; NOT yet corroborated by feeds'
+      return `- M${d.num} ${d.t1} v ${d.t2}: ours ${d.storedISO} → ${src} says ${d.authISO} (${d.diffMin > 0 ? '+' : ''}${d.diffMin} min${corr})`
+    })
+    const feedNotes = notes.filter((n) => n.kind === 'feed-discrepancy')
     sendEmail(
-      `⏰ Schedule change: ${drifts.length} upcoming match${drifts.length === 1 ? '' : 'es'} differ from ESPN`,
-      'The kickoff time(s) below no longer match ESPN. Update src/data/matches.js AND ' +
-        'test/fixtures/official-kickoffs.js (the data.test.js invariant asserts they agree):\n\n' +
-        `${lines.join('\n')}\n`,
+      `⏰ Kickoff change: ${drifts.length} group match${drifts.length === 1 ? '' : 'es'} differ from FIFA`,
+      `FIFA's official data disagrees with our stored kickoff time(s). Update src/data/matches.js AND ` +
+        `test/fixtures/official-kickoffs.js to FIFA's time (data.test.js asserts they agree):\n\n` +
+        `${lines.join('\n')}\n` +
+        (feedNotes.length
+          ? `\nFYI — a feed also disagreed with us on a match FIFA confirmed (likely a feed glitch, no action):\n` +
+            feedNotes.map((n) => `- M${n.num} ${n.t1} v ${n.t2}: ${n.source} ${n.theirISO}`).join('\n') +
+            '\n'
+          : ''),
     )
   }
 
-  // Hourly backstop fails (→ GitHub email); the morning report-only run stays green.
   if (drifts.length && !reportOnly) process.exit(1)
 }
 

@@ -1,57 +1,70 @@
 import { describe, it, expect } from 'vitest'
 import { MATCHES } from '../src/data/matches.js'
-import { normEspn } from '../src/services/espn.js'
-import { pairKey } from '../src/services/results.js'
+import { normalizeTeam, pairKey } from '../src/services/results.js'
 import { compareSchedule } from '../scripts/schedule-core.mjs'
 
 const m4 = MATCHES.find((m) => m.num === 4) // USA v Paraguay (group)
-const m79 = MATCHES.find((m) => m.num === 79) // Winner Group A v 3rd… (knockout @ Azteca)
+const keyOf = (m) => pairKey(normalizeTeam(m.t1), normalizeTeam(m.t2))
+const shift = (iso, min) => new Date(iso).getTime() + min * 60000
+// Build a source whose map reports `iso/ms` for match `m`.
+const src = (name, m, ms) => ({ name, byKey: new Map([[keyOf(m), ms]]) })
+const ko = (m) => new Date(m.ko).getTime()
 
-// ESPN lists the USA as "United States" — the rec key must still match ours.
-const groupRec = (date) => ({
-  key: pairKey(normEspn('United States'), normEspn('Paraguay')),
-  date,
-  venue: "Levi's Stadium",
-})
-// ESPN lists the Mexico City venue under its renamed name.
-const koRec = (date) => ({ key: null, date, venue: 'Estadio Banorte' })
-const shift = (iso, min) => new Date(new Date(iso).getTime() + min * 60000).toISOString()
-
-describe('compareSchedule', () => {
-  it('reports no drift when a group match matches (team aliases resolve)', () => {
-    const { drifts } = compareSchedule([m4], [groupRec(m4.ko)], { fromMs: 0 })
+describe('compareSchedule — FIFA-anchored, multi-source', () => {
+  it('reports no drift when FIFA and the feeds all agree with us', () => {
+    const sources = [src('FIFA', m4, ko(m4)), src('ESPN', m4, ko(m4)), src('OpenFootball', m4, ko(m4))]
+    const { drifts, notes } = compareSchedule([m4], sources, {})
     expect(drifts).toHaveLength(0)
+    expect(notes).toHaveLength(0)
   })
 
-  it('flags a drifted group match and reports the signed minute delta', () => {
-    const { drifts } = compareSchedule([m4], [groupRec(shift(m4.ko, 60))], { fromMs: 0 })
+  it('treats FIFA as the answer when it differs (no human tiebreak needed)', () => {
+    const moved = shift(m4.ko, 60)
+    const sources = [src('FIFA', m4, moved), src('ESPN', m4, moved), src('OpenFootball', m4, ko(m4))]
+    const { drifts } = compareSchedule([m4], sources, {})
     expect(drifts).toHaveLength(1)
-    expect(drifts[0]).toMatchObject({ num: 4, diffMin: 60 })
+    expect(drifts[0]).toMatchObject({ num: 4, diffMin: 60, via: 'authority' })
+    expect(drifts[0].corroborators).toContain('ESPN') // ESPN agrees with FIFA
+    expect(drifts[0].corroborators).not.toContain('OpenFootball') // OF still on the old time
   })
 
-  it('matches a knockout placeholder by venue (Azteca↔Banorte) and flags drift', () => {
-    const { drifts } = compareSchedule([m79], [koRec(shift(m79.ko, -30))], { fromMs: 0 })
+  it('fires on FIFA alone even when no feed corroborates yet (FIFA is authoritative)', () => {
+    const moved = shift(m4.ko, 60)
+    const sources = [src('FIFA', m4, moved), src('ESPN', m4, ko(m4)), src('OpenFootball', m4, ko(m4))]
+    const { drifts } = compareSchedule([m4], sources, {})
     expect(drifts).toHaveLength(1)
-    expect(drifts[0]).toMatchObject({ num: 79, diffMin: -30 })
+    expect(drifts[0].corroborators).toEqual([])
   })
 
-  it('ignores matches before the upcoming-window cutoff', () => {
-    const { drifts } = compareSchedule([m4], [groupRec(shift(m4.ko, 60))], {
-      fromMs: new Date(m4.ko).getTime() + 1,
-    })
-    expect(drifts).toHaveLength(0)
+  it('does NOT drift when a feed is wrong but FIFA confirms us — logs a note instead', () => {
+    const sources = [src('FIFA', m4, ko(m4)), src('ESPN', m4, shift(m4.ko, 60)), src('OpenFootball', m4, ko(m4))]
+    const { drifts, notes } = compareSchedule([m4], sources, {})
+    expect(drifts).toHaveLength(0) // our time is confirmed by the authority
+    expect(notes).toContainEqual(expect.objectContaining({ kind: 'feed-discrepancy', source: 'ESPN' }))
   })
 
-  it('reports a match as unmatched when ESPN has no corresponding fixture', () => {
-    const { drifts, unmatched } = compareSchedule([m4], [], { fromMs: 0 })
+  it('falls back to two-feed consensus when FIFA has no time for the match', () => {
+    const moved = shift(m4.ko, 60)
+    // No FIFA entry; two feeds agree on the new time → consensus drift.
+    const twoAgree = [src('ESPN', m4, moved), src('OpenFootball', m4, moved), src('TheSportsDB', m4, ko(m4))]
+    const r1 = compareSchedule([m4], twoAgree, {})
+    expect(r1.drifts).toHaveLength(1)
+    expect(r1.drifts[0]).toMatchObject({ via: 'consensus' })
+    // Only ONE feed differs (no FIFA) → not a drift, just a single-source note.
+    const oneDiff = [src('ESPN', m4, moved), src('OpenFootball', m4, ko(m4))]
+    const r2 = compareSchedule([m4], oneDiff, {})
+    expect(r2.drifts).toHaveLength(0)
+    expect(r2.notes).toContainEqual(expect.objectContaining({ kind: 'single-source', source: 'ESPN' }))
+  })
+
+  it('respects the threshold (4 min ignored, 5 min flagged)', () => {
+    expect(compareSchedule([m4], [src('FIFA', m4, shift(m4.ko, 4))], {}).drifts).toHaveLength(0)
+    expect(compareSchedule([m4], [src('FIFA', m4, shift(m4.ko, 5))], {}).drifts).toHaveLength(1)
+  })
+
+  it('marks a match unmatched when no source has it', () => {
+    const { drifts, unmatched } = compareSchedule([m4], [{ name: 'FIFA', byKey: new Map() }], {})
     expect(drifts).toHaveLength(0)
     expect(unmatched).toHaveLength(1)
-  })
-
-  it('respects the threshold: a sub-threshold difference is not flagged', () => {
-    // 4-minute difference with the default 5-min threshold → no drift.
-    expect(compareSchedule([m4], [groupRec(shift(m4.ko, 4))], { fromMs: 0 }).drifts).toHaveLength(0)
-    // exactly at the threshold → flagged.
-    expect(compareSchedule([m4], [groupRec(shift(m4.ko, 5))], { fromMs: 0 }).drifts).toHaveLength(1)
   })
 })

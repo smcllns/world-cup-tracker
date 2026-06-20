@@ -1,67 +1,108 @@
-// Pure comparison of our stored kickoff times against ESPN's scheduled times.
-// Group matches are keyed by team pair, reusing the app's own normalization so
-// ESPN spellings ("United States", "Congo DR", …) align; knockout placeholders
-// ("Winner Group A") have no real teams yet, so they're matched by venue +
-// calendar day instead.
+// Validate our stored kickoff times against independent feeds, anchored to an
+// AUTHORITATIVE source (FIFA's own data). The point: never need a human to
+// adjudicate, and don't trust the secondary feeds on their own.
+//
+//   • If the authority (FIFA) disagrees with our stored time → that's the
+//     answer: report it as a drift, with how many secondary feeds corroborate.
+//   • If the authority agrees with us but a feed doesn't → that's a feed glitch,
+//     surfaced as a low-priority note (our time is confirmed correct).
+//   • If the authority has no time for a match → fall back to requiring TWO
+//     secondary feeds to agree before calling it a drift.
+//
+// Group matches are keyed by team pair (the caller builds each source's map with
+// that source's own spelling normalised to our canonical names).
 
-import { normalizeTeam, isRealTeam, pairKey } from '../src/services/results.js'
-import { VENUES } from '../src/data/venues.js'
+import { normalizeTeam, pairKey } from '../src/services/results.js'
 
-const utcDay = (iso) => new Date(iso).toISOString().slice(0, 10)
-const normVenue = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+const keyOf = (t1, t2) => pairKey(normalizeTeam(t1), normalizeTeam(t2))
 
-// ESPN renamed some stadiums for 2026 (e.g. Estadio Azteca → Estadio Banorte).
-const VENUE_ALIASES = { estadioazteca: 'estadiobanorte', estadiobanorte: 'estadioazteca' }
-
-function venueMatch(a, b) {
-  const x = normVenue(a)
-  const y = normVenue(b)
-  if (!x || !y) return false
-  return x.includes(y) || y.includes(x) || VENUE_ALIASES[x] === y || VENUE_ALIASES[y] === x
+function clusterByTime(items, thrMs) {
+  const sorted = [...items].sort((a, b) => a.ms - b.ms)
+  const clusters = []
+  for (const it of sorted) {
+    const last = clusters.at(-1)
+    if (last && Math.abs(it.ms - last[0].ms) < thrMs) last.push(it)
+    else clusters.push([it])
+  }
+  return clusters
 }
 
-// matches: our schedule (src/data/matches.js shape).
-// recs: [{ key, date, venue }] — key = pairKey of normalized ESPN team names, or
-//   null when ESPN still lists the fixture as TBD.
-// Returns { drifts, unmatched }. A drift means our kickoff and ESPN's differ by
-// >= thresholdMin. Only matches at/after fromMs are considered (the upcoming
-// window), so already-played games never raise noise.
-export function compareSchedule(matches, recs, { thresholdMin = 5, fromMs = -Infinity } = {}) {
-  const byKey = new Map()
-  for (const r of recs) if (r.key) byKey.set(r.key, r)
-
+// matches: rows to validate. sources: [{ name, byKey: Map(pairKey -> kickoff ms) }].
+// authority: the name of the source treated as the source of truth (e.g. 'FIFA').
+// Returns { drifts, notes, unmatched }:
+//   drifts  — our stored time is wrong: { num, t1, t2, storedISO, authISO, diffMin,
+//             via ('authority'|'consensus'), corroborators:[names] }
+//   notes   — non-actionable observations: a feed disagreeing while the authority
+//             confirms us, or the authority missing for a match.
+//   unmatched — no source had the match at all.
+export function compareSchedule(matches, sources, { thresholdMin = 5, fromMs = -Infinity, authority = 'FIFA' } = {}) {
+  const thr = thresholdMin * 60000
   const drifts = []
+  const notes = []
   const unmatched = []
+
   for (const m of matches) {
-    const koMs = new Date(m.ko).getTime()
-    if (koMs < fromMs) continue
-
-    let rec = null
-    if (isRealTeam(m.t1) && isRealTeam(m.t2)) {
-      rec = byKey.get(pairKey(normalizeTeam(m.t1), normalizeTeam(m.t2))) || null
-    } else {
-      const vname = VENUES[m.venue]?.name
-      const day = utcDay(m.ko)
-      const cands = recs.filter((r) => venueMatch(r.venue, vname) && utcDay(r.date) === day)
-      if (cands.length === 1) rec = cands[0]
-    }
-
-    if (!rec) {
-      unmatched.push({ num: m.num, stage: m.stage, t1: m.t1, t2: m.t2, ko: m.ko })
+    const stored = new Date(m.ko).getTime()
+    if (stored < fromMs) continue
+    const key = keyOf(m.t1, m.t2)
+    const reported = sources
+      .map((s) => ({ name: s.name, ms: s.byKey.get(key) }))
+      .filter((r) => r.ms != null)
+    if (!reported.length) {
+      unmatched.push({ num: m.num, t1: m.t1, t2: m.t2 })
       continue
     }
-    const diffMin = Math.round((new Date(rec.date).getTime() - koMs) / 60000)
-    if (Math.abs(diffMin) >= thresholdMin) {
-      drifts.push({
-        num: m.num,
-        stage: m.stage,
-        t1: m.t1,
-        t2: m.t2,
-        storedISO: new Date(m.ko).toISOString(),
-        espnISO: new Date(rec.date).toISOString(),
-        diffMin,
-      })
+    const base = { num: m.num, t1: m.t1, t2: m.t2, storedISO: new Date(stored).toISOString() }
+    const auth = reported.find((r) => r.name === authority)
+    const others = reported.filter((r) => r.name !== authority)
+
+    if (auth) {
+      if (Math.abs(auth.ms - stored) >= thr) {
+        // Authoritative change — this is the answer; note which feeds back it up.
+        drifts.push({
+          ...base,
+          authISO: new Date(auth.ms).toISOString(),
+          diffMin: Math.round((auth.ms - stored) / 60000),
+          via: 'authority',
+          corroborators: others.filter((r) => Math.abs(r.ms - auth.ms) < thr).map((r) => r.name),
+        })
+      } else {
+        // Authority confirms our time; any feed that disagrees is a feed glitch.
+        for (const r of others.filter((r) => Math.abs(r.ms - stored) >= thr)) {
+          notes.push({
+            ...base,
+            kind: 'feed-discrepancy',
+            source: r.name,
+            theirISO: new Date(r.ms).toISOString(),
+            diffMin: Math.round((r.ms - stored) / 60000),
+          })
+        }
+      }
+      continue
+    }
+
+    // Authority absent for this match → require two feeds to agree to call it.
+    notes.push({ ...base, kind: 'authority-missing' })
+    const dissent = reported.filter((r) => Math.abs(r.ms - stored) >= thr)
+    for (const cluster of clusterByTime(dissent, thr)) {
+      if (cluster.length >= 2) {
+        drifts.push({
+          ...base,
+          authISO: new Date(cluster[0].ms).toISOString(),
+          diffMin: Math.round((cluster[0].ms - stored) / 60000),
+          via: 'consensus',
+          corroborators: cluster.map((c) => c.name),
+        })
+      } else {
+        notes.push({
+          ...base,
+          kind: 'single-source',
+          source: cluster[0].name,
+          theirISO: new Date(cluster[0].ms).toISOString(),
+          diffMin: Math.round((cluster[0].ms - stored) / 60000),
+        })
+      }
     }
   }
-  return { drifts, unmatched }
+  return { drifts, notes, unmatched }
 }

@@ -10,5 +10,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.js'],
+    coverage: {
+      provider: 'v8',
+      all: true, // count untested files too, so the badge isn't flattered
+      include: ['src/**'],
+      exclude: ['src/main.jsx', 'src/**/*.test.{js,jsx}'],
+      reporter: ['text-summary', 'json-summary'],
+    },
   },
 })

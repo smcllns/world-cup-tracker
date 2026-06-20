@@ -32,6 +32,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run coverage:badge # writes public/coverage.json for the README badge
       - run: npm run build
       - name: Deploy to Netlify
         run: npx netlify-cli@26 deploy --dir dist --functions netlify/functions --prod --message "CI deploy ${{ github.sha }}"
@@ -57,6 +58,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run coverage:badge # writes public/coverage.json for the README badge
       - run: npm run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

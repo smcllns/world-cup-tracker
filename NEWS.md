@@ -5,6 +5,13 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-06-20
+- **README badges + MIT license.** Added a CI status badge and a self-hosted
+  **test-coverage badge** (currently ~89%): CI runs `vitest --coverage`, a tiny
+  script writes a shields.io endpoint `coverage.json` into the deployed site, and
+  the badge reads it — no third-party coverage service or token. Added a `LICENSE`
+  (MIT) for the code + a license badge (trademarks/data remain governed by the
+  disclaimer). New `scripts/coverage-badge.mjs`, `test:coverage` /
+  `coverage:badge` npm scripts, `@vitest/coverage-v8`.
 - **"As it stands" match numbers link to the bracket.** Each projected R32 match
   number (e.g. M79) is now a link — clicking it switches to the Bracket tab,
   scrolls that tie into view, and flashes a highlight.

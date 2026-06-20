@@ -18,6 +18,13 @@ data/source updates, deployment). Newest day on top.
   The footer now notes "kickoff times are cross-checked daily against FIFA's
   official schedule" (a trust signal for the monitoring — not a live data feed;
   the app still fetches scores from OpenFootball/ESPN/TheSportsDB).
+- **Auto-fix PR when FIFA's schedule changes.** The daily check now closes the
+  loop: on a FIFA-confirmed kickoff change it rewrites both `src/data/matches.js`
+  and the official-kickoffs fixture to FIFA's time and opens a ready-to-merge PR
+  (one rolling `auto/kickoff-fix` branch, deduped) — so it's review-and-merge,
+  never a hand edit. Conversion + the in-file rewrites are a pure, unit-tested
+  module (`scripts/schedule-fix-core.mjs`); verified end-to-end by simulating a
+  drift and confirming it restores FIFA's exact time. +5 tests.
 
 - **Hardened the test suite (+21 tests).** Added focused coverage for the
   correctness-critical logic where bugs surfaced this week: more `qualification`

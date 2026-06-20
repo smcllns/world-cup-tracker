@@ -16,11 +16,42 @@
 // Node built-ins + repo source only; email via Gmail SMTP through python3.
 
 import { execSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { MATCHES } from '../src/data/matches.js'
 import { LIVE_SOURCE, normEspn } from '../src/services/espn.js'
 import { BACKUP_SOURCE, normSdb } from '../src/services/thesportsdb.js'
 import { RESULTS_SOURCE, normalizeTeam, pairKey } from '../src/services/results.js'
 import { compareSchedule } from './schedule-core.mjs'
+import { etStrings, editMatches, editFixture } from './schedule-fix-core.mjs'
+
+const MATCHES_FILE = 'src/data/matches.js'
+const FIXTURE_FILE = 'test/fixtures/official-kickoffs.js'
+
+// SCHEDULE_AUTOFIX=1: rewrite both files to FIFA's time for each drift, in place.
+// The workflow then opens a PR from the changed files. Returns the applied list.
+function applyAutofix(drifts) {
+  let mSrc = readFileSync(MATCHES_FILE, 'utf8')
+  let fSrc = readFileSync(FIXTURE_FILE, 'utf8')
+  const applied = []
+  for (const d of drifts) {
+    const { ko, fixture } = etStrings(Date.parse(d.authISO))
+    const a = editMatches(mSrc, d.num, ko)
+    const b = editFixture(fSrc, d.num, fixture)
+    if (a.changed && b.changed) {
+      mSrc = a.text
+      fSrc = b.text
+      applied.push({ num: d.num, ko, fixture })
+    } else {
+      console.warn(`  ⚠ could not auto-fix M${d.num} (matches=${a.changed}, fixture=${b.changed})`)
+    }
+  }
+  if (applied.length) {
+    writeFileSync(MATCHES_FILE, mSrc)
+    writeFileSync(FIXTURE_FILE, fSrc)
+    console.log(`  ✏ auto-fix applied to ${applied.length} match(es); the workflow will open a PR.`)
+  }
+  return applied
+}
 
 // FIFA's official data API (keyless). idSeason 285023 = FIFA World Cup 26.
 const FIFA_URL =
@@ -175,6 +206,11 @@ async function main() {
     console.log(`  note: M${n.num} ${n.t1} v ${n.t2} — ${n.kind}${n.source ? ` (${n.source} ${n.theirISO})` : ''}`)
   }
 
+  // Auto-fix: when enabled, rewrite both files to FIFA's time so the workflow
+  // can open a ready-to-merge PR (the email then points to it rather than asking
+  // for a manual edit).
+  const applied = process.env.SCHEDULE_AUTOFIX === '1' && drifts.length ? applyAutofix(drifts) : []
+
   if (drifts.length) {
     const lines = drifts.map((d) => {
       const src = d.via === 'authority' ? 'FIFA' : 'feed consensus'
@@ -182,10 +218,13 @@ async function main() {
       return `- M${d.num} ${d.t1} v ${d.t2}: ours ${d.storedISO} → ${src} says ${d.authISO} (${d.diffMin > 0 ? '+' : ''}${d.diffMin} min${corr})`
     })
     const feedNotes = notes.filter((n) => n.kind === 'feed-discrepancy')
+    const fixInstruction = applied.length
+      ? `An auto-fix PR with these corrections has been prepared — review & merge it. The change:\n\n`
+      : `Update src/data/matches.js AND test/fixtures/official-kickoffs.js to FIFA's time ` +
+        `(data.test.js asserts they agree):\n\n`
     sendEmail(
       `⏰ Kickoff change: ${drifts.length} group match${drifts.length === 1 ? '' : 'es'} differ from FIFA`,
-      `FIFA's official data disagrees with our stored kickoff time(s). Update src/data/matches.js AND ` +
-        `test/fixtures/official-kickoffs.js to FIFA's time (data.test.js asserts they agree):\n\n` +
+      `FIFA's official data disagrees with our stored kickoff time(s). ${fixInstruction}` +
         `${lines.join('\n')}\n` +
         (feedNotes.length
           ? `\nFYI — a feed also disagreed with us on a match FIFA confirmed (likely a feed glitch, no action):\n` +

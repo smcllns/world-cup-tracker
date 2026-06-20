@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rankGroup, computeQualification } from '../src/utils/qualification.js'
+import { rankGroup, computeQualification, groupComplete } from '../src/utils/qualification.js'
 import { TEAMS } from '../src/data/teams.js'
 import { MATCHES } from '../src/data/matches.js'
 import { FIFA_RANK } from '../src/data/fifaRanking.js'
@@ -141,6 +141,50 @@ describe('rankGroup — FIFA tie-breakers', () => {
     expect(spain.rank).toBeLessThan(cv.rank)
     expect(rows.map((r) => r.name)).toEqual(['Uruguay', 'Spain', 'Cape Verde', 'Saudi Arabia'])
   })
+
+  it('resolves a 3-way head-to-head cycle by overall goal difference', () => {
+    // Brazil, Morocco, Scotland each beat one and lose one among themselves (a
+    // perfect cycle → identical head-to-head), but beat Haiti by different
+    // margins, so overall GD separates them: Brazil (+5) > Morocco (+3) > Scotland (+1).
+    const C = withGroupScores('C', [
+      ['Brazil', 'Morocco', 1, 0],
+      ['Morocco', 'Scotland', 1, 0],
+      ['Scotland', 'Brazil', 1, 0],
+      ['Brazil', 'Haiti', 5, 0],
+      ['Morocco', 'Haiti', 3, 0],
+      ['Scotland', 'Haiti', 1, 0],
+    ])
+    const rows = rankGroup('C', C)
+    expect(rows.map((r) => r.name)).toEqual(['Brazil', 'Morocco', 'Scotland', 'Haiti'])
+    expect(rows.slice(0, 3).every((r) => r.Pts === 6)).toBe(true) // all level on points
+  })
+
+  it('splits two teams level on points + head-to-head by overall goal difference', () => {
+    // Brazil & Morocco both 4 pts and drew head-to-head; Scotland wins the group.
+    // Brazil has the better OVERALL goal difference, so ranks above Morocco.
+    const C = withGroupScores('C', [
+      ['Brazil', 'Morocco', 0, 0], // head-to-head draw
+      ['Scotland', 'Brazil', 1, 0],
+      ['Scotland', 'Morocco', 1, 0],
+      ['Scotland', 'Haiti', 1, 0],
+      ['Brazil', 'Haiti', 3, 0], // Brazil GD better
+      ['Morocco', 'Haiti', 1, 0],
+    ])
+    const rows = rankGroup('C', C)
+    const brazil = rows.find((r) => r.name === 'Brazil')
+    const morocco = rows.find((r) => r.name === 'Morocco')
+    expect(brazil.Pts).toBe(morocco.Pts)
+    expect(brazil.GD).toBeGreaterThan(morocco.GD)
+    expect(brazil.rank).toBeLessThan(morocco.rank)
+    expect(rows[0].name).toBe('Scotland')
+  })
+
+  it('with no results, ranks all four teams 1–4 by FIFA ranking', () => {
+    const rows = rankGroup('C', []) // Brazil(6) < Morocco(7) < Scotland(42) < Haiti(83)
+    expect(rows.map((r) => r.name)).toEqual(['Brazil', 'Morocco', 'Scotland', 'Haiti'])
+    expect(rows.map((r) => r.rank)).toEqual([1, 2, 3, 4])
+    expect(rows.every((r) => r.Pts === 0)).toBe(true)
+  })
 })
 
 describe('computeQualification', () => {
@@ -172,5 +216,28 @@ describe('computeQualification', () => {
     for (const g of Object.keys(TEAMS)) {
       expect(q.groups[g].map((r) => r.rank)).toEqual([1, 2, 3, 4])
     }
+  })
+
+  it('flags completion per group and overall', () => {
+    // Score all 6 of Group C's matches, leave the rest blank.
+    const scored = MATCHES.map((m) =>
+      m.stage === 'Group' && m.group === 'C' ? { ...m, score: [1, 0] } : m,
+    )
+    const q = computeQualification(scored)
+    expect(q.completion.C).toBe(true)
+    expect(q.completion.A).toBe(false)
+    expect(q.allComplete).toBe(false)
+  })
+})
+
+describe('groupComplete', () => {
+  it('is true only once all six group matches are scored', () => {
+    const cMatches = MATCHES.filter((m) => m.stage === 'Group' && m.group === 'C')
+    expect(groupComplete('C', [])).toBe(false)
+    // Five of six scored — still not complete.
+    const five = cMatches.slice(0, 5).map((m) => ({ ...m, score: [1, 0] }))
+    expect(groupComplete('C', five)).toBe(false)
+    const six = cMatches.map((m) => ({ ...m, score: [1, 0] }))
+    expect(groupComplete('C', six)).toBe(true)
   })
 })

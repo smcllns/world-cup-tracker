@@ -47,4 +47,11 @@ describe('compareSchedule', () => {
     expect(drifts).toHaveLength(0)
     expect(unmatched).toHaveLength(1)
   })
+
+  it('respects the threshold: a sub-threshold difference is not flagged', () => {
+    // 4-minute difference with the default 5-min threshold → no drift.
+    expect(compareSchedule([m4], [groupRec(shift(m4.ko, 4))], { fromMs: 0 }).drifts).toHaveLength(0)
+    // exactly at the threshold → flagged.
+    expect(compareSchedule([m4], [groupRec(shift(m4.ko, 5))], { fromMs: 0 }).drifts).toHaveLength(1)
+  })
 })

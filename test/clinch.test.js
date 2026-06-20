@@ -7,6 +7,7 @@ import {
   groupWinners,
   newlyClinched,
   clinchHeadline,
+  clinchBadge,
 } from '../src/utils/clinch.js'
 
 const GROUPS = Object.keys(TEAMS)
@@ -200,5 +201,58 @@ describe('clinch — full group stage, cross-group third place', () => {
       expect(status[third]).toBe(i >= 4 ? 'third' : 'eliminated')
       expect(status[fourth]).toBe('eliminated')
     })
+  })
+})
+
+describe('clinchBadge', () => {
+  it('maps each status to a distinct badge, and unknown → null', () => {
+    expect(clinchBadge('won-group')).toMatchObject({ cls: 'c-won', text: 'Won group' })
+    expect(clinchBadge('top2')).toMatchObject({ cls: 'c-in', text: 'Through' })
+    expect(clinchBadge('third')).toMatchObject({ cls: 'c-in', text: 'Through' })
+    expect(clinchBadge('eliminated')).toMatchObject({ cls: 'c-out', text: 'Eliminated' })
+    expect(clinchBadge(null)).toBeNull()
+    expect(clinchBadge(undefined)).toBeNull()
+    expect(clinchBadge('weird')).toBeNull()
+  })
+})
+
+describe('groupWinners', () => {
+  it('maps only won-group teams to their group letter', () => {
+    const winners = groupWinners({ Mexico: 'won-group', Brazil: 'won-group', USA: 'top2', Haiti: 'eliminated' })
+    expect(winners).toEqual({ A: 'Mexico', C: 'Brazil' }) // Mexico→A, Brazil→C; top2/eliminated excluded
+  })
+  it('returns an empty object when nothing is clinched', () => {
+    expect(groupWinners({})).toEqual({})
+    expect(groupWinners(null)).toEqual({})
+  })
+})
+
+describe('resolveClinchedSlots — leaves runner-up / third slots alone', () => {
+  it('fills only the clinched Winner Group X slot, not runner-up or third slots', () => {
+    const resolved = resolveClinchedSlots(MATCHES, { Mexico: 'won-group', Canada: 'won-group' })
+    const find = (num) => resolved.find((m) => m.num === num)
+    expect(find(79).t1).toBe('Mexico') // Winner Group A
+    expect(find(85).t1).toBe('Canada') // Winner Group B
+    // Runner-up and third placeholders are untouched.
+    expect(find(73).t1).toBe('Runner-up Group A')
+    expect(find(79).t2).toBe('3rd C/E/F/H/I')
+  })
+})
+
+describe('newlyClinched — detects new verdicts and upgrades', () => {
+  it('reports a newly eliminated team', () => {
+    const before = withScores({ 6: [1, 1], 7: [0, 1] }) // Haiti lost once, still alive
+    const after = withScores({ 6: [1, 1], 7: [0, 1], 30: [0, 1], 31: [3, 0] }) // Haiti locked 4th
+    const changes = newlyClinched(before, after)
+    expect(changes).toContainEqual({ team: 'Haiti', group: 'C', status: 'eliminated' })
+  })
+
+  it('reports an upgrade from top2 to won-group', () => {
+    // before: Mexico & Czechia both through (top2). after: Mexico has won the group.
+    const before = withScores({ 1: [1, 0], 2: [0, 1], 25: [1, 0], 28: [1, 0] })
+    const after = withScores({ 1: [3, 0], 2: [0, 0], 25: [0, 0], 28: [3, 0] })
+    expect(computeClinch(before)['Mexico']).toBe('top2')
+    const changes = newlyClinched(before, after)
+    expect(changes).toContainEqual({ team: 'Mexico', group: 'A', status: 'won-group' })
   })
 })

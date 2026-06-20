@@ -4,6 +4,16 @@ A dated changelog for the World Cup 2026 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-06-20
+- **Hardened the test suite (+21 tests).** Added focused coverage for the
+  correctness-critical logic where bugs surfaced this week: more `qualification`
+  tie-breaker scenarios (3-way head-to-head cycle → overall GD, level-on-points +
+  H2H split by GD, no-results FIFA-rank ordering, group completion flags); more
+  `clinch` cases (badge mapping, `groupWinners`, `resolveClinchedSlots` leaving
+  runner-up/third slots alone, `newlyClinched` detecting new eliminations and
+  top2→won-group upgrades); new `byFifaRank` tests; new `urlState` read/write
+  round-trip tests; and a schedule-drift threshold-boundary test. 236 tests total.
+
 ## 2026-06-19
 - **FIFA World Ranking now breaks otherwise-tied standings.** When teams are
   level on points, head-to-head, goal difference, and goals scored, the app used

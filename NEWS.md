@@ -15,6 +15,9 @@ data/source updates, deployment). Newest day on top.
   glitch, not an alarm; if FIFA is unreachable, it falls back to requiring two
   feeds to agree. Verified live: all 72 group matches agree across all four
   sources, FIFA included. `scripts/schedule-core.mjs` rewritten; tests updated.
+  The footer now notes "kickoff times are cross-checked daily against FIFA's
+  official schedule" (a trust signal for the monitoring — not a live data feed;
+  the app still fetches scores from OpenFootball/ESPN/TheSportsDB).
 
 - **Hardened the test suite (+21 tests).** Added focused coverage for the
   correctness-critical logic where bugs surfaced this week: more `qualification`

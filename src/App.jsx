@@ -562,8 +562,8 @@ export default function App() {
         <p>
           Kickoff times convert automatically to your selected timezone. Broadcast info is for the
           United States — FOX &amp; Telemundo are free over the air. Schedule per the FIFA Final
-          Draw (Dec 5, 2025). Filters, timezone &amp; view are saved to the URL — bookmark or share
-          it.
+          Draw (Dec 5, 2025); kickoff times are cross-checked daily against FIFA&rsquo;s official
+          schedule. Filters, timezone &amp; view are saved to the URL — bookmark or share it.
         </p>
         <p className="disclaimer">
           An unofficial fan-made project. Not affiliated with, endorsed by, or sponsored by FIFA.

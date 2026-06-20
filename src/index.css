@@ -799,11 +799,13 @@ select {
 
 /* ---------- Standings ---------- */
 .standings-legend {
+  position: relative; /* anchor the tie-breakers tooltip to the legend, not the span */
   font-size: 0.82rem;
   color: var(--text-dim);
   display: flex;
+  flex-wrap: wrap; /* wrap on narrow screens instead of overflowing off the side */
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
   margin: 0 0 16px;
 }
 .legend-swatch {
@@ -1081,6 +1083,10 @@ select {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     justify-content: flex-start;
+    max-width: 100%; /* cap to the bar so it scrolls internally, not the page */
+  }
+  .bar-actions {
+    max-width: 100%;
   }
   .view-btn {
     white-space: nowrap;
@@ -1472,7 +1478,40 @@ select {
 }
 .thirds-note { font-size: 0.78rem; color: var(--text-dim); margin: 0 0 10px; line-height: 1.5; }
 
-.legend-tb { text-decoration: underline dotted; text-underline-offset: 2px; cursor: help; }
+.legend-tb {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  outline: none;
+}
+/* Custom tooltip — reliable (and tap/focus-friendly) unlike the native title.
+   Anchored to .standings-legend (positioned) so it sits below the legend and
+   stays within the viewport on mobile rather than off the right edge. */
+.legend-tb::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  width: max-content;
+  max-width: min(360px, 92vw);
+  white-space: normal;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  display: none; /* fully removed when hidden so it never widens the page */
+  pointer-events: none;
+}
+.legend-tb:hover::after,
+.legend-tb:focus::after,
+.legend-tb:focus-visible::after {
+  display: block;
+}
 
 .standings-toolbar { display: flex; justify-content: flex-end; margin: -6px 0 14px; }
 .ais-toggle {

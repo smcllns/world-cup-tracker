@@ -199,7 +199,10 @@ export default function Standings({ matches, hideScores, clinch }) {
         best-third spot ·{' '}
         <span
           className="legend-tb"
-          title="Tie-breakers: points → head-to-head → goal difference → goals → fair play (cards) → FIFA ranking"
+          tabIndex={0}
+          role="note"
+          aria-label="Tie-breakers: points, then head-to-head, then goal difference, then goals, then fair play (cards), then FIFA ranking"
+          data-tip="Tie-breakers: points → head-to-head → goal difference → goals → fair play (cards) → FIFA ranking"
         >
           tie-breakers
         </span>{' '}

@@ -7,10 +7,12 @@ data/source updates, deployment). Newest day on top.
 ## 2026-06-20
 - **Groups tab polish.** The "As it stands" block now pins to the bottom of each
   group card, so the blocks line up across a row even when a clinch badge (e.g.
-  Group D's "Won group" / "Eliminated") makes one table taller. And the legend's
-  tie-breaker list — clunky on a phone — moved to hover text on a compact
-  "tie-breakers" label (full order: points → head-to-head → goal difference →
-  goals → fair play → FIFA ranking).
+  Group D's "Won group" / "Eliminated") makes one table taller. The legend's
+  tie-breaker list — clunky on a phone — collapses to a compact "tie-breakers"
+  label that reveals the full order on hover/tap (a real CSS tooltip, since the
+  native one only showed a help cursor). And mobile overflow fixes: the legend
+  now wraps instead of running off the side, and the view switcher scrolls
+  internally instead of widening the whole page.
 - **Fair-play (conduct) tie-breaker added — standings now match BBC.** When teams
   are level on points, head-to-head, goal difference and goals, FIFA's next
   criterion is the team conduct score (cards), *before* FIFA ranking. We now

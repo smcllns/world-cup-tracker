@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import App from '../src/App.jsx'
-import { FollowProvider } from '../src/context/follow.jsx'
 import { LIVE_SOURCE } from '../src/services/espn.js'
 import { RESULTS_SOURCE } from '../src/services/results.js'
 
@@ -64,12 +63,36 @@ describe('App coverage', () => {
     expect(screen.getByText(/World Cup 2026/)).toBeInTheDocument()
   })
 
-  it('toggles the global spoiler (hideScores) button and resets day overrides', () => {
+  it('toggles the global spoiler (hideScores) button', () => {
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: /Scores shown/ }))
     expect(screen.getByRole('button', { name: /Scores hidden/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Scores hidden/ }))
     expect(screen.getByRole('button', { name: /Scores shown/ })).toBeInTheDocument()
+  })
+
+  it('changes the timezone from the header select and reflects it in the subtitle', () => {
+    render(<App />)
+    const tz = screen.getByRole('combobox', { name: /Timezone/ })
+    fireEvent.change(tz, { target: { value: 'Europe/London' } })
+    expect(tz.value).toBe('Europe/London')
+    expect(document.querySelector('.subtitle strong').textContent).toBe('Europe/London')
+  })
+
+  it('switches the match list between Upcoming and Played tabs', () => {
+    render(<App />)
+    const played = screen.getByRole('tab', { name: /Played/ })
+    fireEvent.click(played)
+    expect(played).toHaveAttribute('aria-selected', 'true')
+    const upcoming = screen.getByRole('tab', { name: /Upcoming/ })
+    fireEvent.click(upcoming)
+    expect(upcoming).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('expands the groups disclosure to show the group tables', () => {
+    render(<App />)
+    fireEvent.click(screen.getByText(/Show group tables/))
+    expect(screen.getByRole('heading', { name: 'Group A' })).toBeInTheDocument()
   })
 
   it('toggles theme (covers toggleTheme writing localStorage + dataset)', () => {
@@ -81,34 +104,6 @@ describe('App coverage', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('opens and closes the calendar modal', () => {
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /Calendar/ }))
-    const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByText(/All 104 matches/)).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: /Close/ }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('per-day spoiler + collapse toggles work', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-06-20T16:00:00Z'))
-    try {
-      render(<App />)
-      const dayBtn = screen.getByRole('button', { name: /July 19, 2026/ })
-      const daySection = dayBtn.closest('section.day')
-      const spoiler = within(daySection).getByRole('button', { name: /Hide scores|Show scores/ })
-      fireEvent.click(spoiler) // toggleDay
-      fireEvent.click(spoiler)
-      fireEvent.click(dayBtn) // toggleCollapsed
-      expect(dayBtn).toHaveAttribute('aria-expanded', 'false')
-      fireEvent.click(dayBtn)
-      expect(dayBtn).toHaveAttribute('aria-expanded', 'true')
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
   it('toggles auto-refresh checkbox and the manual Refresh button', () => {
     render(<App />)
     const auto = screen.getByRole('checkbox', { name: /auto/i })
@@ -118,28 +113,14 @@ describe('App coverage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Refresh/ }))
   })
 
-  it('hydrates state from the URL (view, tz, hide, filters)', () => {
-    window.history.replaceState(
-      null,
-      '',
-      '/?view=bracket&tz=America/New_York&hide=1&q=team:%20Brazil&group=A&mine=0',
-    )
+  it('hydrates tz and hideScores from the URL', () => {
+    window.history.replaceState(null, '', '/?tz=America/New_York&hide=1')
     render(<App />)
-    expect(screen.getByRole('button', { name: /Bracket/ }).className).toMatch(/active/)
-    expect(screen.getByText(/America\/New York/)).toBeInTheDocument()
+    expect(document.querySelector('.subtitle strong').textContent).toBe('America/New York')
+    expect(screen.getByRole('button', { name: /Scores hidden/ })).toBeInTheDocument()
   })
 
-  it('switches to week, groups, bracket views', () => {
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /Week/ }))
-    expect(screen.getByText(/World Cup 2026/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Groups/ }))
-    expect(screen.getByText('Group A')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Bracket/ }))
-    expect(screen.getByText(/World Cup 2026/)).toBeInTheDocument()
-  })
-
-  it('"As it stands" link in Groups jumps to the Bracket and focuses a match', async () => {
+  it('"As it stands" link in Groups focuses a match in the bracket', async () => {
     Element.prototype.scrollIntoView = vi.fn()
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-06-20T16:00:00Z'))
@@ -165,49 +146,15 @@ describe('App coverage', () => {
       ])
       render(<App />)
       await vi.waitFor(() => expect(screen.getByText(/with scores/)).toBeInTheDocument())
-      fireEvent.click(screen.getByRole('button', { name: /Groups/ }))
+      fireEvent.click(screen.getByText(/Show group tables/))
       const link = document.querySelector('button.ais-match-link')
       expect(link).toBeTruthy()
       fireEvent.click(link)
-      expect(screen.getByRole('button', { name: /Bracket/ }).className).toMatch(/active/)
+      // The bracket is always mounted; clicking the link scrolls to it.
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalled()
     } finally {
       vi.useRealTimers()
     }
-  })
-
-  it('shows empty state when filters match nothing', () => {
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /Filters & Search/ }))
-    fireEvent.click(screen.getByRole('button', { name: /🔍 Search/ }))
-    fireEvent.change(screen.getByPlaceholderText(/team: Mexico/), {
-      target: { value: 'team: Atlantis' },
-    })
-    expect(screen.getByText(/No matches match your filters/)).toBeInTheDocument()
-  })
-
-  it('clear-all resets filters', () => {
-    render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: /Filters & Search/ }))
-    fireEvent.click(screen.getByRole('button', { name: /🔍 Search/ }))
-    fireEvent.change(screen.getByPlaceholderText(/team: Mexico/), {
-      target: { value: 'team: Brazil' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /Clear all/ }))
-    expect(screen.queryByRole('button', { name: /Clear all/ })).not.toBeInTheDocument()
-  })
-
-  it('My Teams button appears after following and toggles', () => {
-    render(
-      <FollowProvider>
-        <App />
-      </FollowProvider>,
-    )
-    fireEvent.click(screen.getAllByRole('button', { name: /^Follow / })[0])
-    const myTeams = screen.getByRole('button', { name: /My Teams/ })
-    fireEvent.click(myTeams)
-    expect(myTeams.className).toMatch(/active/)
-    fireEvent.click(myTeams)
-    expect(myTeams.className).not.toMatch(/active/)
   })
 
   // --- live / results merge + results bar ---------------------------------
@@ -470,23 +417,9 @@ describe('App coverage', () => {
     }
   })
 
-  it('hides and shows past days from the schedule', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-06-20T16:00:00Z'))
-    try {
-      render(<App />)
-      fireEvent.click(screen.getByRole('button', { name: /Hide past days/ }))
-      expect(screen.queryByRole('button', { name: /June 11, 2026/ })).not.toBeInTheDocument()
-      fireEvent.click(screen.getByRole('button', { name: /Show past days/ }))
-      expect(screen.getByRole('button', { name: /June 11, 2026/ })).toBeInTheDocument()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('opens detail modal and closes it', () => {
+  it('opens detail modal from a list row and closes it', () => {
     render(<App />)
-    fireEvent.click(screen.getAllByRole('button', { name: /Details/ })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /versus/ })[0])
     const dialog = screen.getByRole('dialog')
     expect(dialog).toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button', { name: /Close/ }))

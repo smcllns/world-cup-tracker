@@ -237,7 +237,7 @@ export default function App() {
               Sam Collins
             </a>{' '}
             ·{' '}
-            <a href="https://github.com/smcllns/world-cup-viewer" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/smcllns/world-cup-tracker" target="_blank" rel="noopener noreferrer">
               github
             </a>{' '}
             (fork of{' '}

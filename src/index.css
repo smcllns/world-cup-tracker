@@ -834,17 +834,6 @@ body {
 .md-watch { display: grid; gap: 6px; font-size: 0.82rem; color: var(--text-dim); }
 .md-lang { font-weight: 700; color: var(--text); margin-right: 6px; }
 .md-nogoals { color: var(--text-faint); font-size: 0.84rem; margin: 0; }
-.md-cal {
-  width: 100%;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border: none;
-  padding: 11px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .timeline li { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; }
 .timeline .tl-t2 { flex-direction: row-reverse; text-align: right; }

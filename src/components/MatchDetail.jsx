@@ -4,7 +4,6 @@ import { FLAG_BY_TEAM } from '../data/teams.js'
 import { STAGE_LABELS } from '../data/matches.js'
 import { US_BROADCAST } from '../data/broadcast.js'
 import { formatTime, formatDateLong, tzAbbrev, liveState, teamKickoffTooltip } from '../utils/time.js'
-import { downloadICS } from '../utils/ics.js'
 import { useFollow } from '../context/follow.jsx'
 import { useModalA11y } from '../hooks/useModalA11y.js'
 import LiveBadge from './LiveBadge.jsx'
@@ -133,8 +132,6 @@ export default function MatchDetail({ match, tz, hideScores, onClose }) {
             <div><span className="md-lang">Spanish</span> {US_BROADCAST.spanish.tv.join(' / ')} · {US_BROADCAST.spanish.streaming.join(', ')}</div>
           </div>
         </div>
-
-        <button className="md-cal" onClick={() => downloadICS(match)}>＋ Add to calendar</button>
       </div>
     </div>
   )

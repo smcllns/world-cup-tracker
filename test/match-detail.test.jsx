@@ -24,8 +24,6 @@ function renderDetail(props = {}) {
 
 beforeEach(() => {
   localStorage.clear()
-  global.URL.createObjectURL = vi.fn(() => 'blob:fake')
-  global.URL.revokeObjectURL = vi.fn()
 })
 
 describe('MatchDetail null + basic render', () => {
@@ -180,11 +178,6 @@ describe('MatchDetail follow + meta + actions', () => {
     expect(screen.getByText('Spanish')).toBeInTheDocument()
   })
 
-  it('downloads an ICS file from the calendar button', () => {
-    renderDetail()
-    fireEvent.click(screen.getByRole('button', { name: /Add to calendar/ }))
-    expect(global.URL.createObjectURL).toHaveBeenCalled()
-  })
 })
 
 describe('MatchDetail close handlers', () => {

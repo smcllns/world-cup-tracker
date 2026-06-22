@@ -22,8 +22,8 @@ the full schedule on one scrollable page.
   in-match status on the games that are underway.
 - **Group standings** — all 12 tables with the official 2026 tie-breakers and
   who's through, tucked behind a toggle.
-- **Match details** — tap any match for venue, kickoff, how-to-watch (US), the
-  event timeline, and a one-click calendar (`.ics`) export.
+- **Match details** — tap any match for venue, kickoff, how-to-watch (US), and
+  the event timeline.
 - **Spoiler-free & themes** — hide all scores with one switch; light/dark follows
   your system.
 

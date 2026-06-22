@@ -22,7 +22,9 @@ function Side({ name, ko, score }) {
   )
 }
 
-function BracketMatch({ num, byNum, tz, hideScores }) {
+// `heading`, when given, renders the round title INSIDE the card (used for the
+// late rounds whose column header would otherwise float far from its card).
+function BracketMatch({ num, byNum, tz, hideScores, heading }) {
   const openDetail = useDetail()
   const m = byNum[num]
   if (!m) return null
@@ -34,41 +36,45 @@ function BracketMatch({ num, byNum, tz, hideScores }) {
   })
   const showScore = m.score && !hideScores
   return (
-    <div className="bx-match" id={`bx-m${m.num}`} role="button" tabIndex={0}
+    <div className={`bx-match${heading ? ' bx-match-titled' : ''}`} id={`bx-m${m.num}`} role="button" tabIndex={0}
       aria-label={`${m.t1} versus ${m.t2}, ${STAGE_LABELS[m.stage]}, Match ${m.num}`}
       onClick={() => openDetail(m)}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openDetail(m)}>
-      <div className="bx-meta">
-        <span className="bx-num">M{m.num}</span>
-        {m.live ? <LiveBadge match={m} /> : <span className="bx-date">{date}</span>}
-      </div>
-      <div className="bx-teams">
-        <Side name={m.t1} ko={m.ko} score={showScore ? m.score[0] : null} />
-        <Side name={m.t2} ko={m.ko} score={showScore ? m.score[1] : null} />
-        {showScore && (m.pens || m.aet) && (
-          <div className="bx-score-extra">
-            {m.pens ? `p ${m.pens[0]}–${m.pens[1]}` : 'AET'}
-            <ScoreCheck match={m} compact />
-          </div>
-        )}
-        {showScore && !m.pens && !m.aet && m.scoreCheck && (
-          <div className="bx-score-extra"><ScoreCheck match={m} compact /></div>
-        )}
+      {heading && <div className="bx-card-head">{heading}</div>}
+      <div className="bx-card-row">
+        <div className="bx-meta">
+          <span className="bx-num">M{m.num}</span>
+          {m.live ? <LiveBadge match={m} /> : <span className="bx-date">{date}</span>}
+        </div>
+        <div className="bx-teams">
+          <Side name={m.t1} ko={m.ko} score={showScore ? m.score[0] : null} />
+          <Side name={m.t2} ko={m.ko} score={showScore ? m.score[1] : null} />
+          {showScore && (m.pens || m.aet) && (
+            <div className="bx-score-extra">
+              {m.pens ? `p ${m.pens[0]}–${m.pens[1]}` : 'AET'}
+              <ScoreCheck match={m} compact />
+            </div>
+          )}
+          {showScore && !m.pens && !m.aet && m.scoreCheck && (
+            <div className="bx-score-extra"><ScoreCheck match={m} compact /></div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-// `emit`/`arm` only square the card's connecting corners so the SVG lines meet
-// the card edge flush (emit = feeds rightward, arm = fed from the left).
-function Column({ title, nums, emit, arm, byNum, tz, hideScores }) {
+// `emit`/`arm` mark which side the SVG connectors attach to. `heading` puts the
+// round title inside each card and `noHead` drops the column header (used for
+// the late rounds — see BracketMatch).
+function Column({ title, nums, emit, arm, heading, noHead, byNum, tz, hideScores }) {
   return (
     <div className={`bx-col${emit ? ' bx-emit' : ''}${arm ? ' bx-arm' : ''}`}>
-      <div className="bx-col-head">{title}</div>
+      {!noHead && <div className="bx-col-head">{title}</div>}
       <div className="bx-col-body">
         {nums.map((n) => (
           <div className="bx-cell" key={n}>
-            <BracketMatch num={n} byNum={byNum} tz={tz} hideScores={hideScores} />
+            <BracketMatch num={n} byNum={byNum} tz={tz} hideScores={hideScores} heading={heading} />
           </div>
         ))}
       </div>
@@ -182,17 +188,19 @@ export default function Bracket({ matches, tz, hideScores, focusMatch, onFocusHa
         <Column title={STAGE_LABELS.R32} nums={BRACKET_LINEAR.R32} emit {...common} />
         <Column title={STAGE_LABELS.R16} nums={BRACKET_LINEAR.R16} emit arm {...common} />
         <Column title={STAGE_LABELS.QF} nums={BRACKET_LINEAR.QF} emit arm {...common} />
-        <Column title={STAGE_LABELS.SF} nums={BRACKET_LINEAR.SF} emit arm {...common} />
+        {/* Semifinals carry their title inside each card (the column header
+            would float too far from the cards in such a tall column). */}
+        <Column title={STAGE_LABELS.SF} nums={BRACKET_LINEAR.SF} emit arm noHead heading={STAGE_LABELS.SF} {...common} />
 
+        {/* Final + third-place: titled cards clustered at the vertical centre,
+            forming the peak of the pyramid. */}
         <div className="bx-col bx-col-final bx-arm">
-          <div className="bx-col-head bx-final-head">🏆 {STAGE_LABELS.Final}</div>
           <div className="bx-col-body">
             <div className="bx-cell">
-              <BracketMatch num={BRACKET_LINEAR.Final[0]} {...common} />
+              <BracketMatch num={BRACKET_LINEAR.Final[0]} heading={`🏆 ${STAGE_LABELS.Final}`} {...common} />
             </div>
-            <div className="bx-third-label">🥉 {STAGE_LABELS['3rd']}</div>
             <div className="bx-cell bx-cell-third">
-              <BracketMatch num={BRACKET_LINEAR.third[0]} {...common} />
+              <BracketMatch num={BRACKET_LINEAR.third[0]} heading={`🥉 ${STAGE_LABELS['3rd']}`} {...common} />
             </div>
           </div>
         </div>

@@ -233,17 +233,18 @@ export default function App() {
           </p>
           <p className="credit">
             Created by{' '}
-            <a href="https://chester.rbind.io" target="_blank" rel="noopener noreferrer">
-              Chester Ismay
+            <a href="https://samcollins.blog" target="_blank" rel="noopener noreferrer">
+              Sam Collins
             </a>{' '}
             ·{' '}
-            <a
-              href="https://github.com/ismayc/world-cup-viewer"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View source on GitHub
+            <a href="https://github.com/smcllns/world-cup-viewer" target="_blank" rel="noopener noreferrer">
+              github
+            </a>{' '}
+            (fork of{' '}
+            <a href="https://github.com/ismayc/world-cup-viewer" target="_blank" rel="noopener noreferrer">
+              ismayc/world-cup-viewer
             </a>
+            )
           </p>
         </div>
       </footer>

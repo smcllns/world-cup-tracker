@@ -43,6 +43,12 @@
   box-sizing: border-box;
 }
 
+/* The root background backs the overscroll/rubber-band area (and anything the
+   compositor reveals past the body), so it must match the theme — otherwise it
+   flashes white when scrolling past the edges. */
+html {
+  background: var(--bg);
+}
 body {
   margin: 0;
   background: var(--page-bg);
@@ -374,6 +380,13 @@ body {
   min-width: 0;
 }
 .bx-col-final { flex: 1.05 1 0; }
+/* The Final + third-place cards cluster at the vertical centre (the peak of the
+   pyramid) instead of spreading — so the SF→Final line meets a centred node. */
+.bx-col-final .bx-col-body {
+  justify-content: center;
+  gap: 14px;
+}
+.bx-col-final .bx-cell { flex: 0 0 auto; padding: 0; }
 .bx-col-head {
   font-family: var(--font-display);
   font-size: 0.68rem;
@@ -407,21 +420,40 @@ body {
 .bx-match {
   background: var(--card);
   border-radius: 9px;
-  /* Border replaced by a soft drop shadow + faint ring so the COLORED
+  /* Soft drop shadow + faint ring instead of a border, so the COLORED
      connector lines are the only linear structure competing for attention. */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--border);
-  padding: 4px 8px;
   cursor: pointer;
   position: relative;
   z-index: 1;
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Round title rendered INSIDE late-round cards (Semifinal / Final / Third
+   place), as a bottom-bordered header — these rounds' columns are so tall the
+   column header would float far from the card. */
+.bx-card-head {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  text-align: center;
+  padding: 3px 8px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+.bx-col-final .bx-card-head {
+  color: var(--gold);
+  border-bottom-color: rgba(244, 197, 66, 0.4);
+}
+.bx-card-row {
+  display: flex;
   align-items: stretch;
   gap: 8px;
+  padding: 4px 8px;
 }
-/* Square the connecting (left/right) corners so connector lines meet the card
-   flush; keep a small radius only on the top/bottom-outer corners. */
-.bx-emit .bx-match { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.bx-arm .bx-match { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 /* Flash when navigated to from an "As it stands" match link. */
 .bx-match.bx-focus {
   box-shadow: 0 0 0 2px var(--accent);
@@ -525,7 +557,7 @@ body {
 }
 
 /* ---------- Match list ---------- */
-.matchlist { display: flex; flex-direction: column; }
+.matchlist { display: flex; flex-direction: column; width: 100%; max-width: 800px; margin: 0 auto; }
 
 .ml-toggle {
   display: inline-flex;
@@ -585,19 +617,20 @@ body {
   font: inherit;
   color: inherit;
   background: var(--card);
-  border: 1px solid var(--border);
+  /* Only the left accent is a real border (its colour is set inline per group);
+     the card edge is a box-shadow instead, so the colour bar meets the card with
+     square corners and no mitred angle. */
+  border: 0;
   border-left: 3px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
   cursor: pointer;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
 }
-.ml-row {
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-.ml-row:hover { background: var(--card-hover); border-color: var(--text-faint); }
+.ml-row:hover { background: var(--card-hover); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
 .ml-row:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
-  border-color: var(--accent);
 }
 
 .ml-time { display: flex; flex-direction: column; line-height: 1.1; }

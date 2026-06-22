@@ -604,7 +604,7 @@ body {
   color: var(--text-dim);
   background: var(--bg);
 }
-.ml-rows { display: flex; flex-direction: column; gap: 4px; }
+.ml-rows { display: flex; flex-direction: column; gap: 9px; }
 
 .ml-row {
   display: grid;

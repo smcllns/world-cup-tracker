@@ -187,9 +187,10 @@ export default function Bracket({ matches, tz, hideScores, focusMatch, onFocusHa
         </svg>
         <Column title={STAGE_LABELS.R32} nums={BRACKET_LINEAR.R32} emit {...common} />
         <Column title={STAGE_LABELS.R16} nums={BRACKET_LINEAR.R16} emit arm {...common} />
-        <Column title={STAGE_LABELS.QF} nums={BRACKET_LINEAR.QF} emit arm {...common} />
-        {/* Semifinals carry their title inside each card (the column header
-            would float too far from the cards in such a tall column). */}
+        {/* From the quarterfinals in, each card carries its own title (the column
+            header would float too far from the cards in these tall columns); the
+            earlier, denser rounds keep their column headers. */}
+        <Column title={STAGE_LABELS.QF} nums={BRACKET_LINEAR.QF} emit arm noHead heading={STAGE_LABELS.QF} {...common} />
         <Column title={STAGE_LABELS.SF} nums={BRACKET_LINEAR.SF} emit arm noHead heading={STAGE_LABELS.SF} {...common} />
 
         {/* Final + third-place: titled cards clustered at the vertical centre,

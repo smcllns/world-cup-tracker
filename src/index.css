@@ -555,7 +555,15 @@ body {
    boxes stay legible instead of crushing to nothing. */
 @media (max-width: 900px) {
   .bracket-wrap { padding: 0 16px; }
-  .bracket { overflow-x: auto; padding-bottom: 14px; }
+  /* Horizontal scroll only: pin overflow-y so a vertical swipe scrolls the
+     page instead of being captured here (overflow-x:auto alone would make
+     overflow-y compute to auto). touch-action:pan-x reinforces this on touch. */
+  .bracket {
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x;
+    padding-bottom: 14px;
+  }
   .bx-col { flex: 0 0 184px; }
   .bx-col-final { flex: 0 0 184px; }
 }

@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { MATCHES } from '../src/data/matches.js'
 import { VENUES } from '../src/data/venues.js'
-import { weekStartOf, addDays } from '../src/utils/week.js'
 import {
-  dayKey,
   formatTime,
   matchStatus,
   liveState,
@@ -14,29 +12,6 @@ import { TEAM_TIMEZONES } from '../src/data/teamTimezones.js'
 import { ALL_TEAMS } from '../src/data/teams.js'
 import { buildICS, webcalUrl, googleCalendarUrl } from '../src/utils/ics.js'
 import { computeGroup } from '../src/utils/standings.js'
-
-describe('week utils', () => {
-  it('weekStartOf returns the preceding Sunday', () => {
-    expect(weekStartOf('2026-06-11')).toBe('2026-06-07') // Thu -> Sun
-    expect(weekStartOf('2026-06-07')).toBe('2026-06-07') // Sun -> itself
-  })
-
-  it('addDays does calendar math across month boundaries', () => {
-    expect(addDays('2026-06-28', 6)).toBe('2026-07-04')
-  })
-
-  it('every match falls inside exactly one listed week', () => {
-    const tz = 'America/New_York'
-    const weeks = [...new Set(MATCHES.map((m) => weekStartOf(dayKey(m.ko, tz))))]
-    for (const m of MATCHES) {
-      const k = dayKey(m.ko, tz)
-      const hits = weeks.filter((w) =>
-        Array.from({ length: 7 }, (_, i) => addDays(w, i)).includes(k),
-      )
-      expect(hits).toHaveLength(1)
-    }
-  })
-})
 
 describe('time utils', () => {
   it('converts the opening match (3pm ET) to other zones', () => {

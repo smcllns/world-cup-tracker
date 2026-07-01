@@ -1,3 +1,5 @@
+import { isRealTeam } from '../services/results.js'
+
 // Knockout bracket layout. The "Winner Match N" feed labels don't line up by
 // adjacent match number, so we hard-order each round so that the boxes that
 // feed a later box sit next to each other vertically — producing a readable
@@ -60,4 +62,47 @@ export function groupSlotMap(matches) {
     }
   }
   return map
+}
+
+// Winner of a decided knockout match, by team name — or null if it isn't settled
+// yet (no final score, or a level score with no shootout) or a participant is
+// still a placeholder. A penalty shootout breaks a level score.
+export function knockoutWinner(m) {
+  if (!Array.isArray(m.score)) return null
+  const [a, b] = m.score
+  let side = null
+  if (a > b) side = m.t1
+  else if (b > a) side = m.t2
+  else if (m.pens) {
+    if (m.pens[0] > m.pens[1]) side = m.t1
+    else if (m.pens[1] > m.pens[0]) side = m.t2
+  }
+  return side && isRealTeam(side) ? side : null
+}
+
+// Fill "Winner Match N" placeholders in later rounds with the actual winner of
+// match N once it's decided, so a resolved team flows all the way up the bracket
+// (R32 → R16 → QF → SF → Final) without waiting for the feed to publish each
+// downstream matchup. Feeder matches always carry a lower number than the match
+// they feed, so a single ascending-number pass cascades in one go.
+const MATCH_SLOT = /^Winner Match (\d+)$/
+export function resolveKnockoutSlots(matches) {
+  const winners = {} // match num -> winning team name
+  const sub = (name) => {
+    const hit = MATCH_SLOT.exec(name)
+    return (hit && winners[hit[1]]) || name
+  }
+  let changed = false
+  const byNum = {}
+  for (const m of [...matches].sort((x, y) => x.num - y.num)) {
+    const t1 = sub(m.t1)
+    const t2 = sub(m.t2)
+    const nm = t1 === m.t1 && t2 === m.t2 ? m : ((changed = true), { ...m, t1, t2 })
+    const w = knockoutWinner(nm)
+    if (w != null) winners[nm.num] = w
+    byNum[m.num] = nm
+  }
+  // Preserve the caller's array order; return the original array untouched when
+  // nothing resolved so referential-equality memoization still holds.
+  return changed ? matches.map((m) => byNum[m.num]) : matches
 }

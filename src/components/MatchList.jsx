@@ -8,10 +8,11 @@ import { useDetail } from '../context/detail.js'
 import LiveBadge from './LiveBadge.jsx'
 import CountrySelect from './CountrySelect.jsx'
 
-// A match is "played" once it has a final score, or the feed/clock says it's
-// finished. Everything else (including live games) is "upcoming".
+// A match is "played" once the feed/clock says it's finished. Everything else
+// (including live games, which carry a running score) is "upcoming" — so we ask
+// liveState rather than checking for a score, which is also present while live.
 function isPlayed(m) {
-  return Array.isArray(m.score) || liveState(m) === 'finished'
+  return liveState(m) === 'finished'
 }
 
 // "Sat · Jun 13" for a day-group header, in the viewer's timezone.

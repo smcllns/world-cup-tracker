@@ -170,6 +170,31 @@ describe('applyLive (overlay onto the merged schedule)', () => {
     expect(m.cards.t2).toEqual([{ name: 'SA Player', minute: 20, color: 'yellow' }])
   })
 
+  it('orients the penalty shootout when ESPN home/away is reversed', () => {
+    // A resolved knockout in the opposite order to ESPN: our t1=Netherlands but
+    // ESPN home=Brazil. Brazil win the shootout 4-3; oriented to our order the
+    // pens must read [3, 4], not the raw [4, 3].
+    const matches = [{ num: 90, stage: 'R16', t1: 'Netherlands', t2: 'Brazil', ko: '2026-07-04T13:00:00-04:00' }]
+    const map = new Map([
+      [
+        pairKey('Netherlands', 'Brazil'),
+        {
+          home: 'Brazil',
+          away: 'Netherlands',
+          score: [2, 2],
+          state: 'post',
+          pens: [4, 3],
+          goals: { home: [], away: [] },
+          cards: { home: [], away: [] },
+          subs: { home: [], away: [] },
+        },
+      ],
+    ])
+    const m = applyLive(matches, map).find((x) => x.num === 90)
+    expect(m.score).toEqual([2, 2])
+    expect(m.pens).toEqual([3, 4])
+  })
+
   it('resolves a knockout placeholder by kickoff instant and overlays its score', () => {
     const ko = MATCHES.find((m) => m.num === 73) // Round of 32, placeholder teams
     const map = new Map([

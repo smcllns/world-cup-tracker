@@ -73,10 +73,18 @@ describe('MatchList', () => {
     expect(screen.getAllByText(/·/).length).toBeGreaterThan(0)
   })
 
-  it('shows a live badge for a live match and keeps it in Upcoming', () => {
-    const live = iso(0, 8099, { t1: 'Italy', t2: 'Ghana', score: undefined, live: { clock: "12'", detail: '1st Half' } })
+  it('keeps a live match (with a running score) in Upcoming, not Played', () => {
+    // A live match carries BOTH a running score and m.live. It must stay under
+    // Upcoming — not jump to Played the instant it kicks off and ESPN posts a score.
+    const live = iso(0, 8099, { t1: 'Italy', t2: 'Ghana', score: [1, 0], live: { clock: "12'", detail: '1st Half' } })
     renderList({ matches: [live, played1] })
+    // Default tab is Upcoming: the live match and its clock show here.
+    expect(screen.getByText('Italy')).toBeInTheDocument()
     expect(screen.getByText(/12'/)).toBeInTheDocument()
+    // Switch to Played: the live match is gone; only the finished one remains.
+    fireEvent.click(screen.getByRole('tab', { name: 'Played' }))
+    expect(screen.queryByText('Italy')).not.toBeInTheDocument()
+    expect(screen.getByText(played1.t1)).toBeInTheDocument()
   })
 
   it('shows an empty state when a tab has no matches', () => {

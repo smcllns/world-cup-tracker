@@ -12,6 +12,7 @@ import { fetchBackup, BACKUP_SOURCE, sdbFinalScore } from './services/thesportsd
 import { annotateScoreChecks } from './services/reconcile.js'
 import { computeClinch, resolveClinchedSlots } from './utils/clinch.js'
 import { resolveKnockoutSlots } from './utils/bracket.js'
+import { resolveGroupSlots } from './utils/asItStands.js'
 import { useFollow } from './context/follow.jsx'
 import { DetailContext } from './context/detail.js'
 
@@ -116,13 +117,16 @@ export default function App() {
   const liveCount = useMemo(() => matches.filter((m) => m.live).length, [matches])
   // Guaranteed clinch/elimination status per team (see utils/clinch.js).
   const clinch = useMemo(() => computeClinch(matches), [matches])
-  // Fill clinched group winners into knockout "Winner Group X" slots, then
-  // propagate each decided knockout result into the "Winner Match N" slot it
-  // feeds, so a resolved team reaches every view consistently (list, bracket,
-  // detail modal, calendar) instead of waiting for the feed to publish each
-  // downstream matchup.
+  // Resolve every knockout placeholder we can determine ourselves, so a settled
+  // team reaches every view consistently (list, bracket, detail modal, calendar)
+  // instead of waiting for the feed to publish each matchup:
+  //   1. group-stage placings (runner-up / third-place routing) once a group,
+  //      or the whole group stage, is settled;
+  //   2. clinched group winners (can resolve before a group finishes);
+  //   3. decided knockout results propagated into the "Winner/Loser Match N"
+  //      slot they feed.
   const displayMatches = useMemo(
-    () => resolveKnockoutSlots(resolveClinchedSlots(matches, clinch)),
+    () => resolveKnockoutSlots(resolveClinchedSlots(resolveGroupSlots(matches), clinch)),
     [matches, clinch],
   )
 

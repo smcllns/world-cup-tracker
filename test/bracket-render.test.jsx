@@ -63,9 +63,11 @@ describe('Bracket', () => {
       '0',
     ]) // plain 3–0
 
-    // Live badge for the in-progress match.
+    // Live badge for the in-progress match — and its running score must NOT
+    // render as a final scoreline (that would read as a settled result).
     const liveCard = document.getElementById('bx-m77')
     expect(within(liveCard).getByText(/LIVE/i)).toBeInTheDocument()
+    expect(liveCard.querySelectorAll('.bx-side-score').length).toBe(0)
   })
 
   it('hides scores when hideScores is set', () => {

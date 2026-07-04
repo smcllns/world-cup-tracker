@@ -33,7 +33,10 @@ function BracketMatch({ num, byNum, tz, hideScores, heading }) {
     month: 'short',
     day: 'numeric',
   })
-  const showScore = m.score && !hideScores
+  // A live match carries a running score; don't render it as a final result in
+  // the bracket (that reads as a settled scoreline and spoils an ongoing game).
+  // The LiveBadge in the meta row already signals it's in progress.
+  const showScore = m.score && !hideScores && !m.live
   return (
     <div className={`bx-match${heading ? ' bx-match-titled' : ''}`} id={`bx-m${m.num}`} role="button" tabIndex={0}
       aria-label={`${m.t1} versus ${m.t2}, ${STAGE_LABELS[m.stage]}, Match ${m.num}`}

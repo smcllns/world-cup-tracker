@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { MATCHES } from '../src/data/matches.js'
 import { TEAMS } from '../src/data/teams.js'
-import { projectKnockout } from '../src/utils/asItStands.js'
+import { projectKnockout, resolveGroupSlots } from '../src/utils/asItStands.js'
 import { THIRD_PLACE_COMBINATIONS, THIRD_WINNER_ORDER } from '../src/data/thirdPlaceCombinations.js'
 
 const GROUPS = Object.keys(TEAMS)
@@ -102,6 +102,55 @@ describe('projectKnockout — "as it stands" R32', () => {
     const out = GROUPS.filter((g) => !perGroup[g].thirdQualifies)
     expect(out).toHaveLength(4)
     for (const g of out) expect(perGroup[g].third).toBeNull()
+  })
+})
+
+describe('resolveGroupSlots — filling settled R32 placeholders', () => {
+  const isPlaceholder = (s) => /^(Winner|Runner-up) Group /.test(s) || /^3rd /.test(s)
+  const complete = buildComplete()
+
+  it('resolves every R32 group placeholder once the whole group stage is settled', () => {
+    const out = resolveGroupSlots(complete)
+    for (const m of out.filter((x) => x.stage === 'R32')) {
+      expect(isPlaceholder(m.t1), `M${m.num} t1=${m.t1}`).toBe(false)
+      expect(isPlaceholder(m.t2), `M${m.num} t2=${m.t2}`).toBe(false)
+    }
+    // M73 = Runner-up A vs Runner-up B; buildComplete ranks by team index (2nd = index 1).
+    const m73 = out.find((m) => m.num === 73)
+    expect(m73.t1).toBe(TEAMS['A'][1].name)
+    expect(m73.t2).toBe(TEAMS['B'][1].name)
+  })
+
+  it("resolves a settled group's runner-up but defers third-place slots until all groups settle", () => {
+    // Keep only groups A and B settled; strip scores from the rest.
+    const partial = complete.map((m) =>
+      m.stage === 'Group' && m.group !== 'A' && m.group !== 'B' ? { ...m, score: undefined } : m,
+    )
+    const out = resolveGroupSlots(partial)
+    const m73 = out.find((m) => m.num === 73)
+    expect(m73.t1).toBe(TEAMS['A'][1].name)
+    expect(m73.t2).toBe(TEAMS['B'][1].name)
+    // Third-place slots need the cross-group best-8, so they stay placeholders.
+    expect(out.some((m) => m.stage === 'R32' && (/^3rd /.test(m.t1) || /^3rd /.test(m.t2)))).toBe(true)
+  })
+
+  it('does not lock a placing off a still-live match', () => {
+    // Group A fully scored but one of its matches is still live → A not settled.
+    let flipped = false
+    const withLive = complete.map((m) => {
+      if (!flipped && m.stage === 'Group' && m.group === 'A') {
+        flipped = true
+        return { ...m, live: { clock: "80'" } }
+      }
+      return m
+    })
+    const m73 = resolveGroupSlots(withLive).find((m) => m.num === 73)
+    expect(m73.t1).toBe('Runner-up Group A') // A unsettled → placeholder kept
+    expect(m73.t2).toBe(TEAMS['B'][1].name) // B settled → resolved
+  })
+
+  it('returns the same array when nothing is settled', () => {
+    expect(resolveGroupSlots(MATCHES)).toBe(MATCHES)
   })
 })
 

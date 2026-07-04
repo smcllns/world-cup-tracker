@@ -67,13 +67,20 @@ export function openFootballFinalScore(match, ofMap) {
 }
 
 // OpenFootball score shape: { ft: [home, away], ht: [...], et: [...], p: [...] }.
+// `ft` is the 90-minute result; `et` is the after-extra-time aggregate; `p` is
+// the shootout. A match taken to extra time is settled by `et`, so we display
+// that as the final — otherwise the headline would show the regulation score
+// (e.g. 1–1) while the goal timeline spans extra time (e.g. 3–2). We keep the
+// output key `ft` meaning "the final score to display".
 function parseScore(score) {
   if (!score) return null
-  const ft = Array.isArray(score.ft) ? score.ft : Array.isArray(score) ? score : null
-  if (!ft || ft.length < 2 || ft[0] == null || ft[1] == null) return null
-  const out = { ft: [Number(ft[0]), Number(ft[1])] }
+  const ninety = Array.isArray(score.ft) ? score.ft : Array.isArray(score) ? score : null
+  if (!ninety || ninety.length < 2 || ninety[0] == null || ninety[1] == null) return null
+  const hasEt = Array.isArray(score.et) && score.et[0] != null && score.et[1] != null
+  const final = hasEt ? score.et : ninety
+  const out = { ft: [Number(final[0]), Number(final[1])] }
   if (Array.isArray(score.p) && score.p[0] != null) out.pens = [Number(score.p[0]), Number(score.p[1])]
-  if (Array.isArray(score.et) && score.et[0] != null) out.aet = true
+  if (hasEt) out.aet = true
   return out
 }
 

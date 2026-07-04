@@ -168,16 +168,41 @@ function groupSettled(group, matches) {
 // which can fill them before the group finishes.)
 export function resolveGroupSlots(matches) {
   const { slotTeams } = projectKnockout(matches)
+  const qual = computeQualification(matches)
   const settled = {}
   for (const g of GROUPS) settled[g] = groupSettled(g, matches)
   const allSettled = GROUPS.every((g) => settled[g])
+
+  // Only lock a placing that isn't decided by an approximate tiebreak. The
+  // fair-play conduct score / FIFA-ranking / drawing-of-lots deciders come into
+  // play only when teams are level on all THREE overall criteria (points, goal
+  // difference, goals), so a placing is reliable exactly when its team's
+  // (Pts, GD, GF) triple is unique among the teams it's compared with — then it
+  // sits strictly above/below the rest regardless of how the soft tiebreak
+  // (which we compute best-effort from ESPN cards) falls. Ambiguous placings are
+  // left as placeholders for the authoritative feed to settle.
+  const triple = (r) => `${r.Pts}:${r.GD}:${r.GF}`
+  const uniqueInGroup = (g, name) => {
+    const rows = qual.groups[g] || []
+    const row = rows.find((r) => r.name === name)
+    return !!row && rows.filter((r) => triple(r) === triple(row)).length === 1
+  }
+  // The best-8 cut across the twelve thirds is reliable only when the 8th and
+  // 9th thirds differ on the overall criteria; otherwise which group's third
+  // qualifies (and thus the whole Annexe C routing) is lots-decided.
+  const thirds = qual.thirds
+  const best8Reliable = thirds.length <= ADVANCING_THIRDS || triple(thirds[7]) !== triple(thirds[8])
+
   let changed = false
   const out = matches.map((m) => {
     if (m.stage !== 'R32') return m
     const sub = (label, sideIdx) => {
       const info = slotTeams[`${m.num}:${sideIdx}`]
       if (!info?.name) return label
-      const locked = info.type === 'third' ? allSettled : settled[info.group]
+      const locked =
+        info.type === 'third'
+          ? allSettled && best8Reliable && uniqueInGroup(info.group, info.name)
+          : settled[info.group] && uniqueInGroup(info.group, info.name)
       return locked ? info.name : label
     }
     const t1 = sub(m.t1, 0)

@@ -149,6 +149,18 @@ describe('resolveGroupSlots — filling settled R32 placeholders', () => {
     expect(m73.t2).toBe(TEAMS['B'][1].name) // B settled → resolved
   })
 
+  it('does not lock a placing that hinges on an approximate tiebreak', () => {
+    // Group A finishes all-square (every match 0-0): all four teams identical on
+    // points/GD/goals, so their order is decided only by conduct/ranking — not
+    // reliable — so A's placings must stay placeholders even though A is settled.
+    const ambiguousA = complete.map((m) =>
+      m.stage === 'Group' && m.group === 'A' ? { ...m, score: [0, 0] } : m,
+    )
+    const m73 = resolveGroupSlots(ambiguousA).find((m) => m.num === 73) // Runner-up A vs Runner-up B
+    expect(m73.t1).toBe('Runner-up Group A') // A ambiguous → not locked
+    expect(m73.t2).toBe(TEAMS['B'][1].name) // B has a clean 9/6/3/0 table → locked
+  })
+
   it('returns the same array when nothing is settled', () => {
     expect(resolveGroupSlots(MATCHES)).toBe(MATCHES)
   })

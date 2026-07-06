@@ -835,18 +835,7 @@ body {
 }
 .icon-btn:hover { border-color: var(--accent); color: var(--text); }
 
-/* ---------- Follow star & highlight ---------- */
-.star {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  color: var(--text-faint);
-  padding: 0 2px;
-}
-.star:hover { color: var(--gold); }
-.star.on { color: var(--gold); }
+/* ---------- Followed-team highlight ---------- */
 .row-team.followed,
 .bx-side.followed .bx-team {
   color: var(--gold);

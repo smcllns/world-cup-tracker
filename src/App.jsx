@@ -6,10 +6,8 @@ import MatchList from './components/MatchList.jsx'
 import MatchDetail from './components/MatchDetail.jsx'
 import { detectTimezone, timezoneOptions } from './utils/time.js'
 import { readState, writeState } from './utils/urlState.js'
-import { fetchResults, applyResults, RESULTS_SOURCE, openFootballFinalScore } from './services/results.js'
-import { fetchLive, applyLive, LIVE_SOURCE, espnFinalScore, historyDates } from './services/espn.js'
-import { fetchBackup, BACKUP_SOURCE, sdbFinalScore } from './services/thesportsdb.js'
-import { annotateScoreChecks } from './services/reconcile.js'
+import { fetchResults, applyResults, RESULTS_SOURCE } from './services/results.js'
+import { fetchLive, applyLive, LIVE_SOURCE, historyDates } from './services/espn.js'
 import { computeClinch, resolveClinchedSlots } from './utils/clinch.js'
 import { resolveKnockoutSlots } from './utils/bracket.js'
 import { resolveGroupSlots } from './utils/asItStands.js'
@@ -52,29 +50,25 @@ export default function App() {
   const [tz, setTz] = useState(initial.tz)
   const [hideScores, setHideScores] = useState(initial.hideScores)
 
-  // Results merged into the static schedule from three independent sources:
+  // Results merged into the static schedule from two independent sources:
   //   • OpenFootball (`results`) — source of record (post-match final scores).
   //   • ESPN (`live`) — best-effort live overlay (running score + clock).
-  //   • TheSportsDB (`backup`) — best-effort backup + final-score cross-check.
   const [results, setResults] = useState(null)
   const [live, setLive] = useState(null)
   const [history, setHistory] = useState(null)
-  const [backup, setBackup] = useState(null)
   const abortRef = useRef(null)
 
-  // Poll all three feeds; merge silently into the schedule. There's no UI
-  // status bar — live matches surface themselves via their LiveBadge in the list.
+  // Poll both feeds; merge silently into the schedule. There's no UI status
+  // bar — live matches surface themselves via their LiveBadge in the list.
   const loadResults = useCallback(async () => {
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
-    const [of, espn, sdb] = await Promise.allSettled([
+    const [of, espn] = await Promise.allSettled([
       fetchResults(ctrl.signal),
       fetchLive(ctrl.signal),
-      fetchBackup(ctrl.signal),
     ])
     if (espn.status === 'fulfilled') setLive(espn.value)
-    if (sdb.status === 'fulfilled') setBackup(sdb.value)
     if (of.status === 'fulfilled') setResults(of.value)
   }, [])
 
@@ -97,23 +91,11 @@ export default function App() {
   }, [])
 
   // Merge into the schedule (immutably): OpenFootball first (source of record),
-  // overlay ESPN's live/just-finished scores where OpenFootball has none, then
-  // annotate each final with how many independent sources confirm it.
-  const matches = useMemo(() => {
-    const merged = applyLive(applyLive(applyResults(MATCHES, results), history), live)
-    const sources = [
-      results && { name: RESULTS_SOURCE.name, score: (m) => openFootballFinalScore(m, results) },
-      // ESPN confirms via the live window OR the by-date backfill — otherwise a
-      // finished match silently drops to "1 source" once it ages out of ESPN's
-      // rolling 3-day scoreboard, even though ESPN still has the final.
-      (live || history) && {
-        name: LIVE_SOURCE.name,
-        score: (m) => (live && espnFinalScore(m, live)) || (history && espnFinalScore(m, history)),
-      },
-      backup && { name: BACKUP_SOURCE.name, score: (m) => sdbFinalScore(m, backup) },
-    ].filter(Boolean)
-    return annotateScoreChecks(merged, sources)
-  }, [results, live, history, backup])
+  // then overlay ESPN's live/just-finished scores where OpenFootball has none.
+  const matches = useMemo(
+    () => applyLive(applyLive(applyResults(MATCHES, results), history), live),
+    [results, live, history],
+  )
   const liveCount = useMemo(() => matches.filter((m) => m.live).length, [matches])
   // Guaranteed clinch/elimination status per team (see utils/clinch.js).
   const clinch = useMemo(() => computeClinch(matches), [matches])
@@ -224,9 +206,7 @@ export default function App() {
             owners. Schedule &amp; results data via{' '}
             <a href={RESULTS_SOURCE.homepage} target="_blank" rel="noopener noreferrer">OpenFootball</a>{' '}
             (public domain); live in-match scores via{' '}
-            <a href={LIVE_SOURCE.homepage} target="_blank" rel="noopener noreferrer">ESPN</a>; final
-            scores cross-checked against{' '}
-            <a href={BACKUP_SOURCE.homepage} target="_blank" rel="noopener noreferrer">TheSportsDB</a>.
+            <a href={LIVE_SOURCE.homepage} target="_blank" rel="noopener noreferrer">ESPN</a>.
           </p>
           <p className="credit">
             Created by{' '}

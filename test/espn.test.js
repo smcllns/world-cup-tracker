@@ -149,6 +149,30 @@ describe('applyLive (overlay onto the merged schedule)', () => {
     expect(m.subs.t2).toEqual([{ minute: 75, names: ['Player'] }])
   })
 
+  it('overlays ESPN pens (oriented) when OpenFootball has the score but no shootout yet', () => {
+    // OpenFootball posted a final level score but its `p` field lags. ESPN home =
+    // South Africa (our t2) won the shootout 4-2, so oriented to our order = [2, 4].
+    const withScore = MATCHES.map((m) => (m.num === 1 ? { ...m, score: [1, 1] } : m))
+    const map = new Map([
+      [
+        pairKey('Mexico', 'South Africa'),
+        { home: 'South Africa', away: 'Mexico', score: [1, 1], state: 'post', pens: [4, 2], cards: { home: [], away: [] }, subs: { home: [], away: [] } },
+      ],
+    ])
+    const m = applyLive(withScore, map).find((x) => x.num === 1)
+    expect(m.score).toEqual([1, 1]) // OpenFootball score untouched
+    expect(m.pens).toEqual([2, 4]) // ESPN pens overlaid, oriented to (Mexico, South Africa)
+  })
+
+  it('does not overwrite OpenFootball pens with ESPN pens', () => {
+    const withPens = MATCHES.map((m) => (m.num === 1 ? { ...m, score: [1, 1], pens: [3, 5] } : m))
+    const map = new Map([
+      [pairKey('Mexico', 'South Africa'), { home: 'Mexico', away: 'South Africa', score: [1, 1], state: 'post', pens: [9, 9], cards: { home: [], away: [] }, subs: { home: [], away: [] } }],
+    ])
+    const m = applyLive(withPens, map).find((x) => x.num === 1)
+    expect(m.pens).toEqual([3, 5]) // OpenFootball's pens win
+  })
+
   it('orients overlaid cards when ESPN home/away is the reverse of our order', () => {
     const withScore = MATCHES.map((m) => (m.num === 1 ? { ...m, score: [2, 1] } : m))
     // ESPN home = South Africa (our t2): the away card belongs to Mexico (our t1).

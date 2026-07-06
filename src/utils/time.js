@@ -114,12 +114,15 @@ export function teamKickoffTooltip(iso, teamName) {
   return [head, ...lines].join('\n')
 }
 
-// Match status relative to "now". Group/knockout games run ~2 hours; we treat
-// a match as live for 2h15m after kickoff to cover stoppage and halftime.
+// Match status relative to "now". A group game runs ~2 hours; we treat it as
+// live for 2h15m after kickoff to cover stoppage and halftime. A knockout can go
+// to extra time and a penalty shootout, so it needs a longer window (~2h45m) —
+// otherwise the clock-only fallback marks it "finished" while it's still on.
 const MATCH_MINUTES = 135
-export function matchStatus(iso, now = Date.now()) {
+const KNOCKOUT_MATCH_MINUTES = 165
+export function matchStatus(iso, now = Date.now(), minutes = MATCH_MINUTES) {
   const start = new Date(iso).getTime()
-  const end = start + MATCH_MINUTES * 60 * 1000
+  const end = start + minutes * 60 * 1000
   if (now < start) return 'upcoming'
   if (now <= end) return 'live'
   return 'finished'
@@ -128,9 +131,11 @@ export function matchStatus(iso, now = Date.now()) {
 // Authoritative status for a (possibly merged) match. Prefers real feed data
 // over the clock: a match ESPN flags live (`m.live`) is live; one that has a
 // final score is finished — even if it's still inside the time-based window
-// (e.g. ended early). The clock is only a fallback when we have neither.
+// (e.g. ended early). The clock is only a fallback when we have neither, and it
+// allows for extra time / penalties on a knockout tie.
 export function liveState(match, now = Date.now()) {
   if (match.live) return 'live'
   if (Array.isArray(match.score)) return 'finished'
-  return matchStatus(match.ko, now)
+  const minutes = match.stage && match.stage !== 'Group' ? KNOCKOUT_MATCH_MINUTES : MATCH_MINUTES
+  return matchStatus(match.ko, now, minutes)
 }

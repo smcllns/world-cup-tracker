@@ -226,6 +226,10 @@ export function applyLive(matches, liveMap) {
         const o = rec[key]
         if (o && (o.home.length || o.away.length)) out[key] = orientOf(o)
       }
+      // Overlay ESPN's shootout if OpenFootball posted the final score but not
+      // the penalties yet (its `p` field can lag), so we don't hide which team
+      // advanced. OpenFootball's own pens, once present, still win.
+      if (!m.pens && rec.pens) out.pens = alignedOf ? [...rec.pens] : [rec.pens[1], rec.pens[0]]
       return out
     }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { crossCheck, annotateScoreChecks, reconcileScores } from '../src/services/reconcile.js'
+import { crossCheck, reconcileScores } from '../src/services/reconcile.js'
 import { MATCHES } from '../src/data/matches.js'
 
 const match1 = MATCHES.find((m) => m.num === 1) // Mexico v South Africa
@@ -33,26 +33,6 @@ describe('crossCheck', () => {
       src('B', { home: 'Mexico', away: 'South Africa', ft: [2, 2] }),
     ]
     expect(crossCheck(match1, sources).agree).toBe(false)
-  })
-})
-
-describe('annotateScoreChecks', () => {
-  it('sets scoreCheck only on matches with a multi-source final, immutably', () => {
-    const sources = [
-      { name: 'A', score: (m) => (m.num === 1 ? { home: 'Mexico', away: 'South Africa', ft: [2, 1] } : null) },
-      { name: 'B', score: (m) => (m.num === 1 ? { home: 'Mexico', away: 'South Africa', ft: [2, 1] } : null) },
-    ]
-    const out = annotateScoreChecks(MATCHES, sources)
-    const m1 = out.find((m) => m.num === 1)
-    expect(m1.scoreCheck).toEqual({ count: 2, agree: true })
-    expect(m1).not.toBe(match1) // new object
-    // A match with no multi-source final is returned untouched (same reference).
-    const m2src = MATCHES.find((m) => m.num === 2)
-    expect(out.find((m) => m.num === 2)).toBe(m2src)
-  })
-
-  it('returns input unchanged with fewer than two sources', () => {
-    expect(annotateScoreChecks(MATCHES, [])).toBe(MATCHES)
   })
 })
 

@@ -96,6 +96,21 @@ describe('fetchResults (parsing OpenFootball shape)', () => {
     expect(map.get('stage:Final').score).toBeNull()
   })
 
+  it('uses the after-extra-time aggregate as the final score', async () => {
+    const feed = {
+      matches: [
+        // Decided in extra time: 1–1 at 90', 3–2 after ET. The final must be 3–2.
+        { round: 'Round of 32', num: 86, team1: 'Argentina', team2: 'Cape Verde', score: { ft: [1, 1], et: [3, 2] } },
+      ],
+    }
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => feed }))
+    const map = await fetchResults()
+    const m = map.get('num:86')
+    expect(m.score.ft).toEqual([3, 2])
+    expect(m.score.aet).toBe(true)
+    expect(m.score.pens).toBeUndefined()
+  })
+
   it('throws on a non-OK response', async () => {
     global.fetch = vi.fn(async () => ({ ok: false, status: 503 }))
     await expect(fetchResults()).rejects.toThrow(/503/)

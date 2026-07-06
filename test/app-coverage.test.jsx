@@ -178,12 +178,12 @@ describe('App coverage', () => {
       })
       global.fetch = fetchWith([live, finished])
       render(<App />)
-      // Both played + live (live carries a running score) land in the "Played"
-      // list. Wait for the merge, switch tabs, then assert the live LiveBadge
-      // and the finished final score both render.
+      // The live match (running score) stays in the default "Upcoming" list, so
+      // its LiveBadge renders there; the finished match lands in "Played" with
+      // its final score. Wait for the merge, then assert both.
       await vi.waitFor(() => expect(global.fetch.mock.calls.length).toBeGreaterThan(1))
-      fireEvent.click(screen.getByRole('tab', { name: /Played/ }))
       await vi.waitFor(() => expect(document.querySelector('.ml-live')).toBeInTheDocument())
+      fireEvent.click(screen.getByRole('tab', { name: /Played/ }))
       expect(screen.getByText('2–1')).toBeInTheDocument() // finished score
     } finally {
       vi.useRealTimers()
@@ -219,11 +219,10 @@ describe('App coverage', () => {
       })
       global.fetch = fetchWith([live])
       render(<App />)
-      // A live match is on screen (its LiveBadge shows in the Played list), so
-      // polling runs at the fast 30s cadence; advancing past 30s must trigger
-      // another fetch round.
+      // A live match is on screen (its LiveBadge shows in the default Upcoming
+      // list), so polling runs at the fast 30s cadence; advancing past 30s must
+      // trigger another fetch round.
       await vi.waitFor(() => expect(global.fetch.mock.calls.length).toBeGreaterThan(1))
-      fireEvent.click(screen.getByRole('tab', { name: /Played/ }))
       await vi.waitFor(() => expect(document.querySelector('.ml-live')).toBeInTheDocument())
       const before = global.fetch.mock.calls.length
       await vi.advanceTimersByTimeAsync(31000)

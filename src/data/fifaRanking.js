@@ -2,10 +2,13 @@
 // as the group tie-breaker once points, goal difference, goals scored, and
 // head-to-head are all level — i.e. the last of the official FIFA criteria.
 //
-// Note: the official order is … 6) team conduct score (cards), 7) FIFA World
-// Ranking. We can't reliably compute the conduct score (it needs complete
-// disciplinary data we don't have), so we skip straight to FIFA ranking as the
-// deterministic decider. Lower number = higher-ranked = placed ahead.
+// Note: the official order is … 6) team conduct score (fair-play cards), 7) FIFA
+// World Ranking, 8) drawing of lots. We compute the conduct score best-effort
+// from the cards we have (qualification.js applies it before this), then use FIFA
+// ranking as the deterministic final decider in place of a random draw. Both the
+// conduct data and this final step are approximate — see resolveGroupSlots, which
+// deliberately does NOT lock a bracket placing that hinges on them. Lower number
+// = higher-ranked = placed ahead.
 //
 // Source: FIFA Men's World Ranking, edition of 2026-06-11 (per-nation list via
 // Yahoo Sports). If FIFA publishes a new edition mid-tournament, update here.

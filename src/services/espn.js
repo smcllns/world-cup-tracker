@@ -258,7 +258,10 @@ export function applyLive(matches, liveMap) {
       const o = rec[key]
       if (o && (o.home.length || o.away.length)) out[key] = orient(o)
     }
-    if (rec.pens) out.pens = [...rec.pens]
+    // Orient the shootout tally the same way as the score — otherwise a knockout
+    // where ESPN's (home, away) is flipped from our (t1, t2) shows the pens
+    // reversed, naming the wrong team as the shootout winner.
+    if (rec.pens) out.pens = aligned ? [...rec.pens] : [rec.pens[1], rec.pens[0]]
     if (rec.state === 'in') out.live = { clock: rec.clock, detail: rec.detail }
     out.liveSource = true
     return out

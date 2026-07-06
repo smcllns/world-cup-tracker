@@ -111,6 +111,19 @@ export function projectKnockout(matches) {
   }
   const opponentOf = (s) => teamForSide((byMatch.get(s.matchNum) || []).find((o) => o !== s))
 
+  // Per-side resolution keyed by `${matchNum}:${sideIdx}`, so the bracket can
+  // substitute a slot once its outcome is CERTAIN (see resolveGroupSlots). The
+  // resolved `group` is the group whose placing fills the slot — for a third-
+  // place slot that's the Annexe C assignment, not the group letters in the
+  // label. Null when the slot can't be resolved from the current standings.
+  const slotTeams = {}
+  for (const s of sides) {
+    const t = teamForSide(s)
+    slotTeams[`${s.matchNum}:${s.sideIdx}`] = t
+      ? { name: t.name, type: s.slot.type, group: s.slot.type === 'third' ? thirdSlotGroup.get(s) : s.slot.group }
+      : null
+  }
+
   const perGroup = {}
   for (const g of GROUPS) {
     perGroup[g] = {
@@ -135,5 +148,68 @@ export function projectKnockout(matches) {
       if (g) perGroup[g].third = { team: third[g]?.name || null, opponent: opp?.name || null, matchNum: s.matchNum }
     }
   }
-  return { perGroup, complete, official }
+  return { perGroup, complete, official, slotTeams }
+}
+
+// A group is "settled" once every one of its matches has a FINAL score — a live
+// match (which carries a running score) does not count, so we never lock a
+// placing off an in-progress game.
+function groupSettled(group, matches) {
+  const gm = matches.filter((m) => m.stage === 'Group' && m.group === group)
+  return gm.length > 0 && gm.every((m) => Array.isArray(m.score) && !m.live)
+}
+
+// Fill the Round-of-32 group-stage placeholders ("Runner-up Group X", "3rd
+// A/B/C…", and any still-unresolved "Winner Group X") with real teams — but ONLY
+// where the outcome is already locked, so the bracket never shows a guess.
+// Winner/runner-up of a group lock once that group is settled; third-place slots
+// depend on the cross-group best-8 ranking, so they lock only once EVERY group
+// is settled. (Early group winners are also handled by resolveClinchedSlots,
+// which can fill them before the group finishes.)
+export function resolveGroupSlots(matches) {
+  const { slotTeams } = projectKnockout(matches)
+  const qual = computeQualification(matches)
+  const settled = {}
+  for (const g of GROUPS) settled[g] = groupSettled(g, matches)
+  const allSettled = GROUPS.every((g) => settled[g])
+
+  // Only lock a placing that isn't decided by an approximate tiebreak. The
+  // fair-play conduct score / FIFA-ranking / drawing-of-lots deciders come into
+  // play only when teams are level on all THREE overall criteria (points, goal
+  // difference, goals), so a placing is reliable exactly when its team's
+  // (Pts, GD, GF) triple is unique among the teams it's compared with — then it
+  // sits strictly above/below the rest regardless of how the soft tiebreak
+  // (which we compute best-effort from ESPN cards) falls. Ambiguous placings are
+  // left as placeholders for the authoritative feed to settle.
+  const triple = (r) => `${r.Pts}:${r.GD}:${r.GF}`
+  const uniqueInGroup = (g, name) => {
+    const rows = qual.groups[g] || []
+    const row = rows.find((r) => r.name === name)
+    return !!row && rows.filter((r) => triple(r) === triple(row)).length === 1
+  }
+  // The best-8 cut across the twelve thirds is reliable only when the 8th and
+  // 9th thirds differ on the overall criteria; otherwise which group's third
+  // qualifies (and thus the whole Annexe C routing) is lots-decided.
+  const thirds = qual.thirds
+  const best8Reliable = thirds.length <= ADVANCING_THIRDS || triple(thirds[7]) !== triple(thirds[8])
+
+  let changed = false
+  const out = matches.map((m) => {
+    if (m.stage !== 'R32') return m
+    const sub = (label, sideIdx) => {
+      const info = slotTeams[`${m.num}:${sideIdx}`]
+      if (!info?.name) return label
+      const locked =
+        info.type === 'third'
+          ? allSettled && best8Reliable && uniqueInGroup(info.group, info.name)
+          : settled[info.group] && uniqueInGroup(info.group, info.name)
+      return locked ? info.name : label
+    }
+    const t1 = sub(m.t1, 0)
+    const t2 = sub(m.t2, 1)
+    if (t1 === m.t1 && t2 === m.t2) return m
+    changed = true
+    return { ...m, t1, t2 }
+  })
+  return changed ? out : matches
 }

@@ -36,6 +36,11 @@ describe('knockoutWinner', () => {
     expect(knockoutWinner({ t1: 'France', t2: 'Sweden', score: [1, 1] })).toBeNull() // level, no pens
     expect(knockoutWinner({ t1: 'Winner Match 74', t2: 'France', score: [2, 0] })).toBeNull() // winner is a placeholder
   })
+
+  it('returns null while the match is still live, even if one side leads', () => {
+    // Argentina 0–1 Egypt at 51' — Egypt leads but the match isn't over.
+    expect(knockoutWinner({ t1: 'Argentina', t2: 'Egypt', score: [0, 1], live: { clock: "51'" } })).toBeNull()
+  })
 })
 
 describe('knockoutLoser', () => {
@@ -95,6 +100,17 @@ describe('resolveKnockoutSlots', () => {
     expect(byNum[103].t2).toBe('Brazil') // lost SF 102 on penalties
     expect(byNum[104].t1).toBe('France') // won SF 101
     expect(byNum[104].t2).toBe('Spain') // won SF 102 on penalties
+  })
+
+  it('does not propagate a live match into the next round', () => {
+    // M95 Argentina–Egypt is live at 51' with Egypt leading; M100 must NOT show
+    // Egypt as through until the match is over.
+    const matches = [
+      { num: 95, stage: 'R16', t1: 'Argentina', t2: 'Egypt', score: [0, 1], live: { clock: "51'" } },
+      { num: 100, stage: 'QF', t1: 'Winner Match 95', t2: 'Winner Match 96' },
+    ]
+    const byNum = Object.fromEntries(resolveKnockoutSlots(matches).map((m) => [m.num, m]))
+    expect(byNum[100].t1).toBe('Winner Match 95') // stays a placeholder while live
   })
 
   it('does not propagate a placeholder as a loser when a side is unresolved', () => {

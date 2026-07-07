@@ -269,4 +269,13 @@ describe('groupComplete', () => {
     const six = cMatches.map((m) => ({ ...m, score: [1, 0] }))
     expect(groupComplete('C', six)).toBe(true)
   })
+
+  it('does not count a live match (running score) toward completion', () => {
+    const cMatches = MATCHES.filter((m) => m.stage === 'Group' && m.group === 'C')
+    // All six carry a score, but the last is still live — the group is not settled.
+    const six = cMatches.map((m, i) =>
+      i === 5 ? { ...m, score: [1, 0], live: { clock: "30'" } } : { ...m, score: [1, 0] },
+    )
+    expect(groupComplete('C', six)).toBe(false)
+  })
 })

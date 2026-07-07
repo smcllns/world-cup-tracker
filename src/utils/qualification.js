@@ -142,9 +142,13 @@ export function rankGroup(group, matches) {
   return ordered.map((r, idx) => ({ ...r, rank: idx + 1 }))
 }
 
+// A group is complete only once all its matches have a FINAL score. A live match
+// carries a running score, so `!m.live` keeps an in-progress game from counting
+// — otherwise the standings would assert definitive advance/eliminate verdicts
+// (and drop the "provisional" note) off a result that can still change.
 export function groupComplete(group, matches) {
   return (
-    matches.filter((m) => m.stage === 'Group' && m.group === group && m.score).length >=
+    matches.filter((m) => m.stage === 'Group' && m.group === group && m.score && !m.live).length >=
     GROUP_MATCH_COUNT
   )
 }

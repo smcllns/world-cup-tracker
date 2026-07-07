@@ -65,10 +65,12 @@ export function groupSlotMap(matches) {
 }
 
 // Winner of a decided knockout match, by team name — or null if it isn't settled
-// yet (no final score, or a level score with no shootout) or a participant is
-// still a placeholder. A penalty shootout breaks a level score.
+// yet (still live, no final score, or a level score with no shootout) or a
+// participant is still a placeholder. A penalty shootout breaks a level score.
 export function knockoutWinner(m) {
-  if (!Array.isArray(m.score)) return null
+  // A live match carries a running score, not a result — never propagate its
+  // current leader into the next round until the match is over.
+  if (m.live || !Array.isArray(m.score)) return null
   const [a, b] = m.score
   let side = null
   if (a > b) side = m.t1

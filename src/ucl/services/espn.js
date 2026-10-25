@@ -5,12 +5,14 @@
 //
 // Two fetches feed the app (see App.jsx):
 //   • fetchSeason — every fixture of the season, one request per calendar month
-//     (ESPN accepts a YYYYMMDD-YYYYMMDD range), refreshed occasionally;
+//     (ESPN takes `dates=YYYYMM`; it rejects YYYYMMDD-YYYYMMDD ranges with a
+//     400), refreshed occasionally;
 //   • fetchRecent — yesterday / today / tomorrow, polled often for live scores.
 // Both return Map<id, match>; ESPN event ids are stable, so merging is a set.
 
 import { parseEspnEvents, scoreboardDates } from '../../services/espn.js'
 import { SEASON, ROUNDS } from '../data/season.js'
+import { crestFile } from '../data/crests.js'
 
 export const SCOREBOARD = {
   name: 'ESPN',
@@ -25,9 +27,10 @@ const utcDay = (iso) => {
   return Number.isNaN(t) ? '' : new Date(t).toISOString().slice(0, 10)
 }
 
-// ESPN team -> our club shape. The crest falls back to ESPN's predictable logo
-// path when the scoreboard omits `logo`; a club without an id (a knockout
-// placeholder) has no crest and renders as initials.
+// ESPN team -> our club shape. `crest` is our own SVG (data/crests.js) when we
+// have one; `logo` is ESPN's PNG, falling back to its predictable path when the
+// scoreboard omits it. A club without an id (a knockout placeholder) has
+// neither and renders as initials.
 function club(team) {
   const id = team.id != null ? String(team.id) : null
   const name = team.displayName || team.name || 'TBD'
@@ -36,6 +39,7 @@ function club(team) {
     name,
     short: team.shortDisplayName || name,
     abbr: team.abbreviation || '',
+    crest: id ? crestFile(id) : null,
     logo: team.logo || (id ? `https://a.espncdn.com/i/teamlogos/soccer/500/${id}.png` : null),
     color: /^[0-9a-f]{6}$/i.test(team.color || '') ? `#${team.color}` : null,
   }
@@ -110,8 +114,8 @@ async function getEvents(dates, signal) {
 
 const ymd = (day) => day.replace(/-/g, '')
 
-// One ESPN date range per calendar month the season is played in, plus that
-// month's match days (the per-day fallback below).
+// One ESPN request (`dates=YYYYMM`) per calendar month the season is played
+// in, plus that month's match days (the per-day fallback below).
 export function seasonMonths(rounds = ROUNDS) {
   const byMonth = new Map()
   for (const r of rounds) {
@@ -124,31 +128,34 @@ export function seasonMonths(rounds = ROUNDS) {
   return [...byMonth].map(([ym, days]) => {
     const [y, mo] = ym.split('-').map(Number)
     const lastDay = String(new Date(Date.UTC(y, mo, 0)).getUTCDate()).padStart(2, '0')
-    return { first: `${ym}-01`, last: `${ym}-${lastDay}`, days }
+    return { month: ymd(ym), first: `${ym}-01`, last: `${ym}-${lastDay}`, days }
   })
 }
 
-// Every fixture of the season. A month whose range fails or comes back with
-// nothing inside it (ESPN ignored or rejected the range) is re-fetched day by day
-// from the calendar, so a format quirk can't blank the schedule. Throws only if
-// ESPN couldn't be reached at all.
+// Every fixture of the season. A month whose request fails, or that comes back
+// with events but none in that month (ESPN ignored the parameter), is re-fetched
+// day by day from the calendar, so a format quirk can't blank the schedule. An
+// empty month is fine: those fixtures aren't drawn yet. Throws only if ESPN
+// couldn't be reached at all.
 export async function fetchSeason(signal) {
   const months = seasonMonths()
-  const ranged = await Promise.allSettled(
-    months.map((mo) => getEvents(`${ymd(mo.first)}-${ymd(mo.last)}`, signal)),
-  )
+  const monthly = await Promise.allSettled(months.map((mo) => getEvents(mo.month, signal)))
   let reached = false
   const events = []
   const retry = []
   months.forEach((mo, i) => {
-    const r = ranged[i]
-    if (r.status === 'fulfilled') reached = true
-    const inMonth = (r.value || []).filter((ev) => {
+    const r = monthly[i]
+    if (r.status === 'rejected') {
+      retry.push(...mo.days)
+      return
+    }
+    reached = true
+    const inMonth = r.value.filter((ev) => {
       const day = utcDay(ev?.date)
       return day >= mo.first && day <= mo.last
     })
-    if (inMonth.length) events.push(...inMonth)
-    else retry.push(...mo.days)
+    events.push(...inMonth)
+    if (r.value.length && !inMonth.length) retry.push(...mo.days)
   })
   const daily = await Promise.allSettled(retry.map((d) => getEvents(ymd(d), signal)))
   for (const r of daily) {

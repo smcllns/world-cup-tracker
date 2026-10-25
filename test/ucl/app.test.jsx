@@ -38,12 +38,12 @@ const played = espnEvent({ id: 30, date: '2026-10-21T19:00Z', home: ars, away: b
 
 describe('UCL App', () => {
   it('loads the season and lists fixtures with the timezone picker', async () => {
-    const fetch = serve({ '20261001-20261031': [played], '20261101-20261130': [upcoming] })
+    const fetch = serve({ '202610': [played], '202611': [upcoming] })
     render(<App />)
     expect(screen.getByRole('heading', { name: /Champions League/ })).toBeInTheDocument()
     expect(screen.getByText('Loading fixtures…')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: /Liverpool versus/ })).toBeInTheDocument()
-    expect(datesOf(fetch)).toContain('20260901-20260930')
+    expect(datesOf(fetch)).toContain('202609')
     // No knockout fixtures yet, so no knockout section.
     expect(screen.queryByText('Round of 16')).not.toBeInTheDocument()
 
@@ -52,7 +52,7 @@ describe('UCL App', () => {
   })
 
   it('loads under StrictMode’s mount / unmount / remount', async () => {
-    serve({ '20261101-20261130': [upcoming] })
+    serve({ '202611': [upcoming] })
     render(
       <StrictMode>
         <App />
@@ -62,7 +62,7 @@ describe('UCL App', () => {
   })
 
   it('opens and closes a match, following its live record', async () => {
-    serve({ '20261101-20261130': [upcoming] })
+    serve({ '202611': [upcoming] })
     render(<App />)
     fireEvent.click(await screen.findByRole('button', { name: /Liverpool versus Paris Saint-Germain/ }))
     const dialog = screen.getByRole('dialog')
@@ -72,7 +72,7 @@ describe('UCL App', () => {
   })
 
   it('filters the list from the league table', async () => {
-    serve({ '20261001-20261031': [played], '20261101-20261130': [upcoming] })
+    serve({ '202610': [played], '202611': [upcoming] })
     render(<App />)
     await screen.findByRole('button', { name: /Liverpool versus/ })
     fireEvent.click(screen.getByText('📊 Show league table'))
@@ -83,7 +83,7 @@ describe('UCL App', () => {
 
   it('shows the knockout section once knockout fixtures exist', async () => {
     serve({
-      '20270301-20270331': [espnEvent({ id: 50, date: '2027-03-10T20:00Z', home: ars, away: bar })],
+      '202703': [espnEvent({ id: 50, date: '2027-03-10T20:00Z', home: ars, away: bar })],
     })
     render(<App />)
     expect(await screen.findByText('Round of 16')).toBeInTheDocument()
@@ -99,7 +99,7 @@ describe('UCL App', () => {
   it('polls recent days, faster while a match is live, and catches up on resume', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-11-04T20:30:00Z') })
     const live = espnEvent({ id: 40, date: '2026-11-04T20:00Z', home: liv, away: psg, state: 'in', score: [1, 0] })
-    const fetch = serve({ '20261101-20261130': [upcoming], 20261104: [live] })
+    const fetch = serve({ '202611': [upcoming], 20261104: [live] })
     render(<App />)
     await screen.findByRole('button', { name: /Liverpool versus/ })
 
@@ -126,7 +126,7 @@ describe('UCL App', () => {
   it('keeps showing fixtures when a later poll fails', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-11-04T12:00:00Z') })
     let down = false
-    serve((dates) => (down ? 'down' : dates === '20261101-20261130' ? [upcoming] : []))
+    serve((dates) => (down ? 'down' : dates === '202611' ? [upcoming] : []))
     render(<App />)
     await screen.findByRole('button', { name: /Liverpool versus/ })
     down = true

@@ -129,3 +129,8 @@
   color: var(--text-faint);
 }
 .badge-live { color: var(--live); font-weight: 700; white-space: nowrap; }
+
+/* "Champions League" is longer than "World Cup 2026": keep it on one line on phones. */
+@media (max-width: 560px) {
+  .title-block h1 { font-size: 1.55rem; gap: 8px; }
+}

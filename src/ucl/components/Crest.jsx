@@ -15,15 +15,21 @@ export function crestSrc(logo, px = 128) {
 
 const initials = (club) => (club?.abbr || club?.name || '?').slice(0, 3).toUpperCase()
 
-// A club's crest. Falls back from the resized crest to the original logo, then
-// to an initials badge in the club's colour, so a missing image never leaves a
-// hole in the row. Decorative: the club name always sits next to it.
+// Image sources to try, best first: our own SVG crest, ESPN's resized crest,
+// ESPN's original logo.
+const sources = (club) => [...new Set([club?.crest, crestSrc(club?.logo), club?.logo].filter(Boolean))]
+
+// A club's crest. Each image that fails to load hands over to the next source,
+// and after the last to an initials badge in the club's colour, so a missing
+// image never leaves a hole in the row. Decorative: the club name always sits
+// next to it.
 export default function Crest({ club, className = '' }) {
-  // How many sources have failed for the *current* logo (resets if it changes).
-  const [failed, setFailed] = useState({ logo: null, n: 0 })
-  const logo = club?.logo || null
-  const n = failed.logo === logo ? failed.n : 0
-  const src = n === 0 ? crestSrc(logo) : n === 1 ? logo : null
+  const list = sources(club)
+  const key = list.join(' ')
+  // How many sources have failed for the *current* club (resets if it changes).
+  const [failed, setFailed] = useState({ key: null, n: 0 })
+  const n = failed.key === key ? failed.n : 0
+  const src = list[n]
   if (!src) {
     return (
       <span
@@ -43,7 +49,7 @@ export default function Crest({ club, className = '' }) {
       aria-hidden="true"
       loading="lazy"
       decoding="async"
-      onError={() => setFailed({ logo, n: n + 1 })}
+      onError={() => setFailed({ key, n: n + 1 })}
     />
   )
 }

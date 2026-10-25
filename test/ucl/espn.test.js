@@ -32,6 +32,7 @@ describe('parseEvent', () => {
     })
     expect(m.t1).toEqual({
       id: '359',
+      crest: 'crests/arsenal.svg',
       name: 'Arsenal',
       short: 'Arsenal',
       abbr: 'ARS',
@@ -90,12 +91,13 @@ describe('parseEvent', () => {
     const m = parseEvent(espnEvent({ id: 7, date: '2026-11-04T20:00Z', home: liv, away: { displayName: 'TBD' } }))
     expect(m.t1.logo).toBe('https://a.espncdn.com/i/teamlogos/soccer/500/364.png')
     expect(m.t1.color).toBeNull()
-    expect(m.t2).toMatchObject({ id: null, name: 'TBD', short: 'TBD', logo: null, abbr: '' })
+    expect(m.t1.crest).toBe('crests/liverpool-fc.svg')
+    expect(m.t2).toMatchObject({ id: null, name: 'TBD', short: 'TBD', crest: null, logo: null, abbr: '' })
   })
 
   it('names a team by `name` when there is no displayName, else TBD', () => {
     const m = parseEvent(espnEvent({ id: 8, date: '2026-11-04T20:00Z', home: { id: 9, name: 'Club' }, away: {} }))
-    expect(m.t1).toMatchObject({ id: '9', name: 'Club', short: 'Club' })
+    expect(m.t1).toMatchObject({ id: '9', name: 'Club', short: 'Club', crest: null })
     expect(m.t2.name).toBe('TBD')
   })
 
@@ -133,7 +135,12 @@ describe('seasonMonths', () => {
       '2026-09-01', '2026-10-01', '2026-11-01', '2026-12-01', '2027-01-01',
       '2027-02-01', '2027-03-01', '2027-04-01', '2027-05-01', '2027-06-01',
     ])
-    expect(months[0]).toEqual({ first: '2026-09-01', last: '2026-09-30', days: ['2026-09-08', '2026-09-09', '2026-09-10'] })
+    expect(months[0]).toEqual({
+      month: '202609',
+      first: '2026-09-01',
+      last: '2026-09-30',
+      days: ['2026-09-08', '2026-09-09', '2026-09-10'],
+    })
     expect(months[1].days).toEqual(['2026-10-13', '2026-10-14', '2026-10-20', '2026-10-21'])
     expect(months[5].last).toBe('2027-02-28')
   })
@@ -162,33 +169,40 @@ const md3 = espnEvent({ id: 30, date: '2026-10-21T19:00Z', home: ars, away: bar,
 const md4 = espnEvent({ id: 40, date: '2026-11-04T20:00Z', home: liv, away: psg })
 
 describe('fetchSeason', () => {
-  it('fetches one range per month and keeps only in-range events', async () => {
+  it('fetches one request per month and keeps only that month’s events', async () => {
     const fetch = stubFetch({
-      '20261001-20261031': [md3, md4], // md4 is outside October: ignored here…
-      '20261101-20261130': [md4], // …and picked up by its own month
+      202610: [md3, md4], // md4 is outside October: ignored here…
+      202611: [md4], // …and picked up by its own month
     })
     const map = await fetchSeason()
     expect([...map.keys()].sort()).toEqual(['30', '40'])
     const urls = fetch.mock.calls.map((c) => c[0])
-    expect(urls[0]).toBe(`${SCOREBOARD.url}?dates=20260901-20260930&limit=200`)
-    // Months with nothing in range retry their match days one by one.
-    expect(urls).toContain(`${SCOREBOARD.url}?dates=20260908&limit=200`)
-    expect(urls).not.toContain(`${SCOREBOARD.url}?dates=20261021&limit=200`)
+    expect(urls[0]).toBe(`${SCOREBOARD.url}?dates=202609&limit=200`)
+    expect(urls).toHaveLength(10) // one per month; empty months aren't retried
   })
 
-  it('falls back to per-day requests when ranges are rejected', async () => {
-    stubFetch({
-      '20261001-20261031': 400,
-      '20261021': [md3],
-      '20261104': 'bad', // a 200 without events[] counts as empty
+  it('re-fetches a month day by day when its request fails', async () => {
+    const fetch = stubFetch({
+      202610: 400,
+      20261021: [md3],
+      20261014: 'bad', // a 200 without events[] counts as empty
     })
     const map = await fetchSeason()
     expect([...map.keys()]).toEqual(['30'])
+    const days = fetch.mock.calls.map((c) => new URL(c[0]).searchParams.get('dates'))
+    expect(days).toEqual(expect.arrayContaining(['20261013', '20261014', '20261020', '20261021']))
+    expect(days).not.toContain('20261104')
+  })
+
+  it('re-fetches a month that comes back with only other months’ events', async () => {
+    stubFetch({ 202609: [md3], 202610: [md4], 20261021: [md3] })
+    expect([...(await fetchSeason()).keys()].sort()).toEqual(['30'])
   })
 
   it('drops events outside the season window', async () => {
-    const old = espnEvent({ id: 99, date: '2026-05-30T19:00Z', home: ars, away: bar })
-    stubFetch({ '20260908': [old, { competitions: [] }, { date: 'soon' }, null] })
+    const old = espnEvent({ id: 99, date: '2026-09-30T23:00Z', home: ars, away: bar })
+    old.date = '2026-05-30T19:00Z'
+    stubFetch({ 202609: 500, 20260908: [old, { competitions: [] }, { date: 'soon' }, null] })
     expect((await fetchSeason()).size).toBe(0)
   })
 

@@ -319,6 +319,19 @@ describe('Crest', () => {
     expect(img()).not.toBeNull()
   })
 
+  it('prefers our own SVG crest, then falls back to ESPN', () => {
+    const club = { name: 'Arsenal', abbr: 'ARS', crest: 'crests/arsenal.svg', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/359.png' }
+    const { container } = render(<Crest club={club} />)
+    const img = () => container.querySelector('img')
+    expect(img().getAttribute('src')).toBe('crests/arsenal.svg')
+    fireEvent.error(img())
+    expect(img().getAttribute('src')).toContain('combiner')
+    fireEvent.error(img())
+    expect(img().getAttribute('src')).toBe(club.logo)
+    fireEvent.error(img())
+    expect(container.querySelector('.crest-initials')).toHaveTextContent('ARS')
+  })
+
   it('uses initials straight away without a logo', () => {
     const { container, rerender } = render(<Crest club={{ name: 'Slavia Praha' }} />)
     expect(container.querySelector('.crest-initials')).toHaveTextContent('SLA')

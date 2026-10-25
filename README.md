@@ -41,10 +41,13 @@ live scores and clock, a club filter, spoiler mode, a match detail view with goa
 and cards, the 36-club **league-phase table**, and the **knockout ties** (with
 aggregates) once the draw puts them in the feed.
 
-Everything — fixtures, crests, scores — comes live from ESPN's public scoreboard;
-the only static data is UEFA's calendar in `src/ucl/data/season.js` (which round
-each date belongs to). Update that file for a new season. Source lives in
-`src/ucl/`; the page entry is `ucl/index.html`.
+Fixtures and scores come live from ESPN's public scoreboard. The static data is
+UEFA's calendar in `src/ucl/data/season.js` (which round each date belongs to)
+and the clubs' SVG crests in `public/ucl/crests/`, sourced from
+[FootyLogos](https://www.footylogos.com/competition/uefa-champions-league) and
+mapped to ESPN's clubs in `src/ucl/data/crests.js`. For a new season, update the
+calendar, add any new clubs to the crest map and run `npm run ucl:crests`. Source
+lives in `src/ucl/`; the page entry is `ucl/index.html`.
 
 ## Develop
 

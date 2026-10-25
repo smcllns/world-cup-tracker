@@ -186,16 +186,21 @@ export default function App() {
 
         <div className="footer-fineprint">
           <p>
-            Kickoff times convert automatically to your selected timezone. Fixtures, scores and
-            crests update live from ESPN&rsquo;s public scoreboard; matchday and knockout-round labels
+            Kickoff times convert automatically to your selected timezone. Fixtures and scores
+            update live from ESPN&rsquo;s public scoreboard; matchday and knockout-round labels
             follow UEFA&rsquo;s {SEASON.label} calendar. Your timezone &amp; spoiler mode are saved to
             the URL — bookmark or share it.
           </p>
           <p className="disclaimer">
             An unofficial fan-made project. Not affiliated with, endorsed by, or sponsored by UEFA.
             “Champions League”, club names and crests are trademarks of their respective owners.
-            Fixtures, results &amp; crests via{' '}
-            <a href={SCOREBOARD.homepage} target="_blank" rel="noopener noreferrer">ESPN</a>.
+            Fixtures &amp; results via{' '}
+            <a href={SCOREBOARD.homepage} target="_blank" rel="noopener noreferrer">ESPN</a>; crest
+            files via{' '}
+            <a href="https://www.footylogos.com/logo-usage-right" target="_blank" rel="noopener noreferrer">
+              FootyLogos
+            </a>
+            .
           </p>
           <p className="credit">
             Created by{' '}

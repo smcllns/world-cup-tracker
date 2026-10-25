@@ -10,7 +10,7 @@ import LiveBadge from './LiveBadge.jsx'
 // Minute label including stoppage time, e.g. "45+3'".
 const minuteLabel = (e) => (e.minute != null ? `${e.minute}${e.extra ? `+${e.extra}` : ''}'` : '')
 
-function Timeline({ match }) {
+export function Timeline({ match }) {
   const events = []
   const collect = (list, side, type) => (list || []).forEach((x) => events.push({ ...x, side, type }))
   collect(match.goals?.t1, 't1', 'goal')

@@ -70,7 +70,7 @@ function parseClock(displayValue) {
 // benefiting team, flagged og). Card: { name, minute, extra, color }.
 // Sub: { minute, extra, names } (ESPN's scoreboard feed doesn't reliably mark
 // in/out, so we just list the players involved).
-function parseEspnEvents(comp, homeId, awayId) {
+export function parseEspnEvents(comp, homeId, awayId) {
   const goals = { home: [], away: [] }
   const cards = { home: [], away: [] }
   const subs = { home: [], away: [] }

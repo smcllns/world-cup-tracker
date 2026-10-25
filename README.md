@@ -30,6 +30,25 @@ the full schedule on one scrollable page.
 No accounts, no backend — it's a static site that talks to public score feeds
 directly from your browser.
 
+## Champions League tracker
+
+### 🔗 [worldcuptracker.win/ucl/](https://worldcuptracker.win/ucl/)
+
+A sister app for the 2026/27 UEFA Champions League, at its own URL with its own
+manifest and icon, so it installs as a separate home-screen app. Same layout and
+controls: every match by day in your timezone (Upcoming / Played), **club crests**,
+live scores and clock, a club filter, spoiler mode, a match detail view with goals
+and cards, the 36-club **league-phase table**, and the **knockout ties** (with
+aggregates) once the draw puts them in the feed.
+
+Fixtures and scores come live from ESPN's public scoreboard. The static data is
+UEFA's calendar in `src/ucl/data/season.js` (which round each date belongs to)
+and the clubs' SVG crests in `public/ucl/crests/`, sourced from
+[FootyLogos](https://www.footylogos.com/competition/uefa-champions-league) and
+mapped to ESPN's clubs in `src/ucl/data/crests.js`. For a new season, update the
+calendar, add any new clubs to the crest map and run `npm run ucl:crests`. Source
+lives in `src/ucl/`; the page entry is `ucl/index.html`.
+
 ## Develop
 
 Requires [Bun](https://bun.sh).

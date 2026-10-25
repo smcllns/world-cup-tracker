@@ -4,6 +4,30 @@ A dated changelog for the World Cup 2026 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-10-25
+- **New: Champions League tracker at `/ucl/`.** A replica of the World Cup
+  tracker for the 2026/27 UEFA Champions League, built as a second page of the
+  same Vite app and deployed alongside it. It has its own web-app manifest,
+  icon and theme, so "Add to Home Screen" gives it a separate icon. Matches are
+  listed by day (Upcoming / Played) in your timezone with each club's crest, the
+  live clock and scores, a club filter, spoiler mode and a detail view (goals,
+  cards, venue, US TV). Below that is the 36-club league-phase table, coloured
+  by zone (1–8 Round of 16, 9–24 play-offs) using UEFA's league-phase
+  tie-breakers. Tap a club to filter to its fixtures. Once the draw adds knockout
+  fixtures, a knockout section shows each two-legged tie with its aggregate and
+  winner.
+- **Data: ESPN only.** Fixtures, crests and scores all come from ESPN's public
+  scoreboard (`uefa.champions`). There is one request per season month, each
+  falling back to one request per match day if ESPN doesn't honour the date
+  range. A fast poll of yesterday, today and tomorrow (30s while a match is
+  live, 2 min otherwise) keeps scores current, and the app refreshes as soon as
+  the home-screen app is reopened. Crests fall back from ESPN's resized image to
+  the original, then to an initials badge. Rounds and legs come from UEFA's
+  2026/27 calendar (`src/ucl/data/season.js`), not ESPN's round names.
+- Shared with the World Cup app: `parseEspnEvents` and `Timeline` are now
+  exported for reuse. The time, URL-state and modal helpers and the base
+  stylesheet are reused unchanged.
+
 ## 2026-06-20
 - **Live matches blink in the Groups tab.** Because the standings and "As it
   stands" reflect in-progress scores, any group with a match underway now shows a

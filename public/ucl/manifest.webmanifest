@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Champions League Tracker 2026/27",
+  "short_name": "UCL Tracker",
+  "description": "Every 2026/27 Champions League match in your timezone — live scores, club crests, the league table and knockout ties.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070b24",
+  "theme_color": "#070b24",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

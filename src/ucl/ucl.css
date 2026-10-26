@@ -154,19 +154,8 @@
 }
 .badge-live { color: var(--live); font-weight: 700; white-space: nowrap; }
 
-/* Phones: keep the theme toggle small in the top-right corner (the shared
-   stylesheet drops it onto its own centred row), and size the title to stay on
-   one line between equal side gutters, so it stays centred. */
+/* Phones: the shared stylesheet keeps the theme toggle in the corner; this
+   longer title needs a smaller size to stay on one line beside it. */
 @media (max-width: 640px) {
-  .hero-corner {
-    position: absolute;
-    top: 0;
-    right: 0;
-    order: 0;
-    width: auto;
-    margin: 0;
-  }
-  .hero-corner .icon-btn { padding: 4px 7px; font-size: 0.78rem; }
-  .title-block { padding: 0 34px; }
-  .title-block h1 { font-size: clamp(1rem, 5.4vw, 1.55rem); gap: 8px; }
+  .title-block h1 { font-size: clamp(1rem, 5.4vw, 1.55rem); }
 }

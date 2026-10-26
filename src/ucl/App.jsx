@@ -130,7 +130,7 @@ export default function App() {
         </div>
         <div className="title-block">
           <h1>
-            <span className="trophy">⭐</span> {SEASON.name}
+            <img className="ucl-logo" src="icon.svg" alt="" aria-hidden="true" /> {SEASON.name}
           </h1>
           <p className="subtitle">
             {SEASON.label} · 36 clubs · shown in{' '}
@@ -151,14 +151,10 @@ export default function App() {
         </div>
       </header>
 
-      {ties.size > 0 && (
-        <>
-          <section className="bracket-view">
-            <Knockout ties={[...ties.values()]} tz={tz} hideScores={hideScores} />
-          </section>
-          <hr className="section-rule" />
-        </>
-      )}
+      <section className="bracket-view">
+        <Knockout ties={[...ties.values()]} tz={tz} hideScores={hideScores} />
+      </section>
+      <hr className="section-rule" />
 
       <section ref={listRef} className="list-view">
         <MatchList

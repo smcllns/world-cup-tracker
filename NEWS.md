@@ -5,6 +5,19 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-10-26
+- **Knockout bracket outline before the knockouts.** During the league phase
+  the Champions League page now shows the knockout tree's outline at the top,
+  joined up with lines and with a note that it fills in after the league phase
+  ends on 27 January. Slots are labelled by league position, following the
+  shape UEFA's format fixes in advance: in each half, 1st/2nd and 7th/8th meet
+  in one quarter-final and 3rd/4th and 5th/6th in the other, each against the
+  winner of a play-off (15th/16th v 17th/18th, 9th/10th v 23rd/24th, …).
+  Real ties replace the outline once knockout fixtures are in the feed.
+- **Champions League header.** The yellow ⭐ emoji is replaced by the
+  home-screen app icon (`public/ucl/icon.svg`, rounded like an iOS icon) in the
+  title, the browser tab and the "All Clubs" filter. On phones the light/dark
+  button now stays small in the top-right corner instead of taking its own
+  centred row, and the title scales to stay on one line beside it.
 - **Champions League knockout tree.** The knockout section is now a bracket
   like the World Cup's. Play-off ties line up with the round-of-16 tie their
   winner joined, then a binary tree runs to the final, with connector lines.

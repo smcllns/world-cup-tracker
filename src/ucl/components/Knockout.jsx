@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { KNOCKOUT_STAGES, ROUNDS, STAGE_LABELS } from '../data/season.js'
 import { isPlayed } from '../utils/rounds.js'
-import { layoutBracket, slotId } from '../utils/tree.js'
+import { layoutBracket, skeletonBracket, slotId } from '../utils/tree.js'
 import { useConnectorLines } from '../../hooks/useConnectorLines.js'
 import { useDetail } from '../../context/detail.js'
 import LiveBadge from '../../components/LiveBadge.jsx'
@@ -94,9 +94,14 @@ function feeder(slot, hideScores) {
   return { label: slot?.seed || 'TBD' }
 }
 
-// A slot whose feeders are known but whose fixture isn't in the feed yet.
+// A slot whose feeders are known but whose fixture isn't in the feed yet (or,
+// before the knockouts, the bracket's outline, labelled by league position).
 function PlaceholderCard({ slot, hideScores }) {
-  const sides = slot.kids ? slot.kids.map((k) => feeder(k, hideScores)) : [feeder(slot), { label: 'TBD' }]
+  const sides = slot.labels
+    ? slot.labels.map((label) => ({ label }))
+    : slot.kids
+      ? slot.kids.map((k) => feeder(k, hideScores))
+      : [feeder(slot), { label: 'TBD' }]
   const days = ROUNDS.filter((r) => r.stage === slot.stage).flatMap((r) => r.dates)
   const span = [...new Set([days[0], days[days.length - 1]])].filter(Boolean)
   const text = (s) => s.club?.name || s.label
@@ -124,16 +129,22 @@ function PlaceholderCard({ slot, hideScores }) {
   )
 }
 
-// The knockout phase as a tree, play-offs → Final, shown once the draw puts
-// knockout fixtures in the feed. utils/tree.js decides where each tie sits and
-// which slots feed which; the connector lines follow those links only, so a
+// The knockout phase as a tree, play-offs → Final. Until the first knockout
+// fixture is in the feed it shows the bracket's outline by league position, so
+// it's clear what's coming; then utils/tree.js decides where each tie sits and
+// which slots feed which. The connector lines follow those links only, so a
 // round whose path isn't known yet simply isn't joined up.
 export default function Knockout({ ties, tz, hideScores }) {
-  const { slots, edges } = useMemo(() => layoutBracket(ties), [ties])
+  const { slots, edges, skeleton } = useMemo(() => (ties.length ? layoutBracket(ties) : skeletonBracket()), [ties])
   const bracketRef = useRef(null)
   const { lines, size } = useConnectorLines(bracketRef, edges, [tz, hideScores])
   return (
     <div className="bracket-wrap">
+      {skeleton && (
+        <p className="ucl-ko-note">
+          Knockout bracket: fills in after the league phase ends on 27 January. Places are final league positions.
+        </p>
+      )}
       <div className="bracket ucl-knockout" ref={bracketRef}>
         <svg className="bx-lines" width={size.w} height={size.h} aria-hidden="true">
           {lines.map((d, i) => (

@@ -108,6 +108,12 @@ export function layoutBracket(ties, bracket = BRACKET) {
     }
   }
 
+  return { slots, edges: edgesFor(slots, poLinked), drawn }
+}
+
+// Connector edges: each round-of-16 slot to its play-off slot where linked, and
+// each known QF / SF / Final slot to the slots feeding it.
+function edgesFor(slots, poLinked) {
   const edges = []
   for (const r of slots.R16) {
     if (r.show && poLinked.has(r.index)) edges.push({ parent: slotId(r), children: [slotId(slots.PO[r.index])] })
@@ -118,5 +124,37 @@ export function layoutBracket(ties, bracket = BRACKET) {
       if (ks.length) edges.push({ parent: slotId(p), children: ks.map(slotId) })
     }
   }
-  return { slots, edges, drawn }
+  return edges
+}
+
+// Before any knockout fixture exists: the shape UEFA's format fixes in advance,
+// labelled by league-phase position. In each half of the bracket, 1st/2nd and
+// 7th/8th meet in one quarter-final and 3rd/4th and 5th/6th in the other, each
+// having played the winner of a play-off between the places listed (the draw
+// decides which of each pair goes in which half).
+const SEEDS = [
+  ['1st/2nd', ['15th/16th', '17th/18th']],
+  ['7th/8th', ['9th/10th', '23rd/24th']],
+  ['3rd/4th', ['13th/14th', '19th/20th']],
+  ['5th/6th', ['11th/12th', '21st/22nd']],
+]
+
+export function skeletonBracket() {
+  const slots = {}
+  for (const [stage, n] of Object.entries(SLOTS)) {
+    slots[stage] = Array.from({ length: n }, (_, index) => ({
+      key: `${stage}-${index}`,
+      stage,
+      index,
+      tie: null,
+      known: true,
+      show: 'placeholder',
+    }))
+  }
+  slots.PO.forEach((s, i) => (s.labels = SEEDS[i % 4][1]))
+  slots.R16.forEach((s, i) => (s.labels = [SEEDS[i % 4][0], 'Play-off winner']))
+  for (const stage of ['QF', 'SF', 'Final']) {
+    for (const s of slots[stage]) s.kids = [0, 1].map((j) => slots[CHILD[stage]][2 * s.index + j])
+  }
+  return { slots, edges: edgesFor(slots, new Set(slots.R16.map((s) => s.index))), drawn: false, skeleton: true }
 }

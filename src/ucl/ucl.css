@@ -21,6 +21,8 @@
   --zone-r16: #4cc3ff;
   --zone-po: #f5b942;
   --crest-edge: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.55));
+  /* The navy logo needs a hairline edge to stand off the navy page. */
+  --logo-edge: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 2px 10px rgba(0, 0, 0, 0.45);
   --page-bg: radial-gradient(1200px 600px at 80% -10%, #1b2a78 0%, var(--bg) 55%);
 }
 
@@ -42,12 +44,20 @@
   --zone-r16: #1f5fe0;
   --zone-po: #c98a0b;
   --crest-edge: none;
+  --logo-edge: 0 2px 10px rgba(10, 20, 80, 0.35);
   --page-bg: radial-gradient(1200px 600px at 80% -10%, #dfe6ff 0%, var(--bg) 55%);
 }
 
-.trophy {
-  filter: drop-shadow(0 2px 8px rgba(76, 195, 255, 0.45));
+/* The home-screen icon (public/ucl/icon.svg) as the page's logo, rounded like
+   an iOS app icon. */
+.ucl-logo {
+  width: 1.1em;
+  height: 1.1em;
+  flex: 0 0 auto;
+  border-radius: 22%;
+  box-shadow: var(--logo-edge);
 }
+.ucl-logo-sm { width: 18px; height: 18px; box-shadow: none; }
 
 /* ---------- Club crests ---------- */
 .crest {
@@ -129,6 +139,12 @@
   border: 1px dashed var(--border);
   cursor: default;
 }
+.ucl-ko-note {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
 .ucl-tbd-note {
   margin: 0;
   text-align: center;
@@ -138,7 +154,19 @@
 }
 .badge-live { color: var(--live); font-weight: 700; white-space: nowrap; }
 
-/* "Champions League" is longer than "World Cup 2026": keep it on one line on phones. */
-@media (max-width: 560px) {
-  .title-block h1 { font-size: 1.55rem; gap: 8px; }
+/* Phones: keep the theme toggle small in the top-right corner (the shared
+   stylesheet drops it onto its own centred row), and size the title to stay on
+   one line between equal side gutters, so it stays centred. */
+@media (max-width: 640px) {
+  .hero-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    order: 0;
+    width: auto;
+    margin: 0;
+  }
+  .hero-corner .icon-btn { padding: 4px 7px; font-size: 0.78rem; }
+  .title-block { padding: 0 34px; }
+  .title-block h1 { font-size: clamp(1rem, 5.4vw, 1.55rem); gap: 8px; }
 }

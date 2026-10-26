@@ -23,6 +23,18 @@ const show = (ties, hideScores = false) => {
 }
 const card = (id) => document.getElementById(id)
 
+describe('Knockout tree (before the knockouts)', () => {
+  it('shows the outline, labelled by league position, with a note', () => {
+    show([])
+    expect(screen.getByText(/fills in after the league phase ends on 27 January/)).toBeInTheDocument()
+    expect(card('ucl-PO-0')).toHaveAccessibleName('Knockout play-offs: 15th/16th versus 17th/18th')
+    expect(card('ucl-R16-0')).toHaveAccessibleName('Round of 16: 1st/2nd versus Play-off winner')
+    expect(card('ucl-QF-0')).toHaveAccessibleName('Quarter-finals: TBD versus TBD')
+    expect(within(card('ucl-Final-0')).getByText('Jun 5')).toBeInTheDocument()
+    expect(screen.queryByText('To be drawn')).not.toBeInTheDocument()
+  })
+})
+
 describe('Knockout tree (undrawn)', () => {
   it('draws the whole played tree with connector lines', () => {
     show(tiesOf(...ALL))

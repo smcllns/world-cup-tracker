@@ -44,6 +44,13 @@ describe('parseEvent', () => {
     expect(m.live).toBeUndefined()
   })
 
+  it('reads the round from ESPN’s season slug', () => {
+    const slugs = ['league-phase', 'knockout-round-playoffs', 'round-of-16', 'quarterfinals', 'semifinals', 'final', 'something-new']
+    const stages = slugs.map((slug) => parseEvent(espnEvent({ id: 1, date: '2026-11-04T20:00Z', home: liv, away: psg, slug })).espnStage)
+    expect(stages).toEqual(['League', 'PO', 'R16', 'QF', 'SF', 'Final', null])
+    expect(parseEvent(espnEvent({ id: 1, date: '2026-11-04T20:00Z', home: liv, away: psg })).espnStage).toBeNull()
+  })
+
   it('has no score before kickoff, even though ESPN sends "0"', () => {
     const m = parseEvent(espnEvent({ id: 2, date: '2026-11-04T20:00Z', home: liv, away: psg }))
     expect(m.score).toBeNull()

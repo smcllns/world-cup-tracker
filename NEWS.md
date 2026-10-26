@@ -4,6 +4,33 @@ A dated changelog for the World Cup 2026 Schedule Viewer. Each heading is a
 calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
+## 2026-10-26
+- **Champions League knockout tree.** The knockout section is now a bracket
+  like the World Cup's. Play-off ties line up with the round-of-16 tie their
+  winner joined, then a binary tree runs to the final, with connector lines.
+  ESPN's feed doesn't say which tie feeds which, so `src/ucl/utils/tree.js`
+  works it out:
+  - **Undrawn:** working down from the final, each tie's clubs say which ties
+    of the round before fed it. Rounds that can't be linked yet aren't joined
+    up.
+  - **Drawn:** listing the round-of-16 order in `src/ucl/data/bracket.js`
+    after UEFA's draw (expected around 26 February 2027) fixes every slot.
+    Later rounds show as dated placeholders naming who comes through: the
+    winner once decided, else "PSG / Liverpool". Spoiler mode keeps winners
+    hidden.
+
+  Tested on last season's real knockout data
+  (`test/ucl/fixtures/espn-ko-2025-26.json`, play-offs to the final): the
+  fixtures alone rebuild the whole 2025/26 tree.
+- **Rounds from ESPN.** A match's round now comes from ESPN's season slug
+  (`round-of-16`, `quarterfinals`, …) where the feed has one, with UEFA's
+  calendar as the fallback and the source of matchdays. A rescheduled match
+  now keeps its real round.
+- **Shared connector lines.** The World Cup bracket's line drawing moved into
+  `src/hooks/useConnectorLines.js` (now also handling single-child links), and
+  both trackers use it. The World Cup bracket draws identical lines:
+  same 60 segments, pixel-identical screenshot.
+
 ## 2026-10-25
 - **New: Champions League tracker at `/ucl/`.** A replica of the World Cup
   tracker for the 2026/27 UEFA Champions League, built as a second page of the

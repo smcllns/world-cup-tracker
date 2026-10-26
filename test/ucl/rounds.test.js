@@ -66,6 +66,19 @@ describe('tagMatches', () => {
     expect(byId[12].tieKey).not.toBe(byId[10].tieKey)
   })
 
+  it('prefers ESPN’s round to the calendar', () => {
+    const out = tagged([
+      leg(1, '2027-05-30T19:00Z', ars, bar, { slug: 'final' }), // a final off our calendar's date
+      leg(2, '2026-10-21T19:00Z', liv, psg, { slug: 'league-phase' }),
+      leg(3, '2027-02-17T20:00Z', rma, bay, { slug: 'league-phase' }), // rescheduled into the play-off weeks
+    ])
+    const [ko, league, lateLeague] = ['1', '2', '3'].map((id) => out.find((m) => m.id === id))
+    expect(ko).toMatchObject({ stage: 'Final', tieKey: 'Final:359-83' })
+    expect(league).toMatchObject({ stage: 'League', matchday: 3 })
+    expect(lateLeague).toMatchObject({ stage: 'League', matchday: undefined })
+    expect(lateLeague.tieKey).toBeUndefined()
+  })
+
   it('keeps the Final legless and a placeholder side unpaired', () => {
     const out = tagged([
       leg(20, '2027-06-05T19:00Z', ars, bar),

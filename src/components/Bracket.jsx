@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { STAGE_LABELS } from '../data/matches.js'
 import { FLAG_BY_TEAM } from '../data/teams.js'
 import { BRACKET_LINEAR, matchesByNum } from '../utils/bracket.js'
@@ -6,6 +6,7 @@ import { teamKickoffTooltip } from '../utils/time.js'
 import { useFollow } from '../context/follow.jsx'
 import { useDetail } from '../context/detail.js'
 import LiveBadge from './LiveBadge.jsx'
+import { useConnectorLines } from '../hooks/useConnectorLines.js'
 
 // One team row: flag + name on the left, score (when played) flush right.
 function Side({ name, ko, score }) {
@@ -82,7 +83,8 @@ function Column({ title, nums, emit, arm, heading, noHead, byNum, tz, hideScores
 
 // Each parent node is fed by an adjacent pair of children in the previous round
 // (BRACKET_LINEAR keeps feeders vertically adjacent), so the tree edges are just
-// parent i ← children 2i, 2i+1 across each round transition.
+// parent i ← children 2i, 2i+1 across each round transition, named by the
+// cards' DOM ids for useConnectorLines.
 function buildEdges() {
   const rounds = [
     BRACKET_LINEAR.R32,
@@ -96,7 +98,7 @@ function buildEdges() {
     const child = rounds[r]
     const parent = rounds[r + 1]
     for (let i = 0; i < parent.length; i++) {
-      edges.push({ parent: parent[i], a: child[2 * i], b: child[2 * i + 1] })
+      edges.push({ parent: `bx-m${parent[i]}`, children: [`bx-m${child[2 * i]}`, `bx-m${child[2 * i + 1]}`] })
     }
   }
   return edges
@@ -107,59 +109,8 @@ export default function Bracket({ matches, tz, hideScores, focusMatch, onFocusHa
   const common = { byNum, tz, hideScores }
   const edges = useMemo(buildEdges, [])
   const bracketRef = useRef(null)
-  const [lines, setLines] = useState([])
-  const [size, setSize] = useState({ w: 0, h: 0 })
-
-  // Draw the connector tree as a computed SVG overlay. Reading each card's real
-  // box (relative to the bracket) means the elbows land exactly between a node
-  // and its two feeders regardless of card height, gaps, or column spacing —
-  // which a pure-CSS pseudo-element approach can't guarantee.
-  useLayoutEffect(() => {
-    const wrap = bracketRef.current
-    if (!wrap) return
-    const compute = () => {
-      const base = wrap.getBoundingClientRect()
-      const pos = (n) => {
-        const el = wrap.querySelector(`#bx-m${n}`)
-        if (!el) return null
-        const r = el.getBoundingClientRect()
-        const x0 = r.left - base.left + wrap.scrollLeft
-        const y0 = r.top - base.top + wrap.scrollTop
-        return { left: x0, right: x0 + r.width, midY: y0 + r.height / 2 }
-      }
-      const segs = []
-      for (const { parent, a, b } of edges) {
-        const pa = pos(a)
-        const pb = pos(b)
-        const pp = pos(parent)
-        if (!pa || !pb || !pp) continue
-        const childRight = Math.max(pa.right, pb.right)
-        const midX = Math.round((childRight + pp.left) / 2)
-        const ya = Math.round(pa.midY)
-        const yb = Math.round(pb.midY)
-        const yp = Math.round(pp.midY)
-        // Two stubs out of the children, a vertical join, one stub into the parent.
-        segs.push(`M${Math.round(pa.right)} ${ya}H${midX}`)
-        segs.push(`M${Math.round(pb.right)} ${yb}H${midX}`)
-        segs.push(`M${midX} ${ya}V${yb}`)
-        segs.push(`M${midX} ${yp}H${Math.round(pp.left)}`)
-      }
-      setLines(segs)
-      setSize({ w: wrap.scrollWidth, h: wrap.scrollHeight })
-    }
-    compute()
-    // ResizeObserver is absent in some environments (e.g. jsdom); degrade to a
-    // one-shot compute + window-resize there rather than crashing.
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(compute) : null
-    ro?.observe(wrap)
-    window.addEventListener('resize', compute)
-    // Fonts can settle after first paint and shift card heights; recompute once.
-    if (document.fonts?.ready) document.fonts.ready.then(compute)
-    return () => {
-      ro?.disconnect()
-      window.removeEventListener('resize', compute)
-    }
-  }, [edges, matches, tz, hideScores])
+  // Connector tree drawn as an SVG overlay from the cards' real boxes.
+  const { lines, size } = useConnectorLines(bracketRef, edges, [matches, tz, hideScores])
 
   // When arriving from an "As it stands" link, scroll the target match into
   // view (the bracket can scroll horizontally on narrow screens) and flash a

@@ -26,6 +26,7 @@ export function espnEvent({
   details = [],
   venue,
   broadcasts,
+  slug,
 }) {
   const typeName = name || { pre: 'STATUS_SCHEDULED', in: 'STATUS_SECOND_HALF', post: 'STATUS_FULL_TIME' }[state]
   const comp = {
@@ -40,6 +41,7 @@ export function espnEvent({
   return {
     id,
     date,
+    ...(slug ? { season: { slug } } : {}),
     status: {
       displayClock: "67'",
       type: { state, name: typeName, shortDetail: shortDetail ?? (state === 'in' ? "67'" : state === 'post' ? 'FT' : '10/21 - 3:00 PM EDT'), description: state === 'in' ? 'Second Half' : '' },

@@ -35,8 +35,20 @@ describe('useConnectorLines', () => {
       p: { left: 200, top: 50, width: 100, height: 40 },
     })
     let out
-    render(<Tree ids={['a', 'b', 'p']} edges={[{ parent: 'p', children: ['a', 'b'] }]} onLines={(l) => (out = l)} />)
+    let size
+    render(
+      <Tree
+        ids={['a', 'b', 'p']}
+        edges={[{ parent: 'p', children: ['a', 'b'] }]}
+        onLines={(l, s) => {
+          out = l
+          size = s
+        }}
+      />,
+    )
     expect(out).toEqual(['M100 20H150', 'M100 120H150', 'M150 20V120', 'M150 70H200'])
+    // Sized to the lines (plus the stroke), not to the 500×300 container.
+    expect(size).toEqual({ w: 202, h: 122 })
   })
 
   it('draws a straight line from a single child level with its parent', () => {

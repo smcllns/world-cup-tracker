@@ -10,6 +10,9 @@ import { useLayoutEffect, useState } from 'react'
 // a vertical join runs between the children (and the parent), and one stub runs
 // into the parent — so two children make the classic elbow and a single child
 // level with its parent makes a straight line. Missing elements are skipped.
+// The SVG is sized to the lines themselves, never to the container's scroll
+// size: it counts towards that size, so measuring it back could widen the
+// scroll area on every recompute and leave empty space past the last column.
 // Recomputes when `deps` change, on resize, and once fonts settle.
 export function useConnectorLines(containerRef, edges, deps = []) {
   const [lines, setLines] = useState([])
@@ -29,6 +32,8 @@ export function useConnectorLines(containerRef, edges, deps = []) {
         return { left: x0, right: x0 + r.width, midY: y0 + r.height / 2 }
       }
       const segs = []
+      let w = 0
+      let h = 0
       for (const { parent, children } of edges) {
         const pp = pos(parent)
         const kids = children.map(pos).filter(Boolean)
@@ -42,9 +47,12 @@ export function useConnectorLines(containerRef, edges, deps = []) {
         const bottom = Math.max(...ys, yp)
         if (bottom > top) segs.push(`M${midX} ${top}V${bottom}`)
         segs.push(`M${midX} ${yp}H${Math.round(pp.left)}`)
+        w = Math.max(w, childRight, pp.left)
+        h = Math.max(h, bottom)
       }
       setLines(segs)
-      setSize({ w: wrap.scrollWidth, h: wrap.scrollHeight })
+      // A couple of pixels' room for the stroke.
+      setSize({ w: Math.ceil(w) + 2, h: Math.ceil(h) + 2 })
     }
     compute()
     // ResizeObserver is absent in some environments (e.g. jsdom); degrade to a

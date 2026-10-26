@@ -5,6 +5,13 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-10-26
+- **Fix: blank space after the bracket on phones.** The layer that draws the
+  bracket's connector lines was sized to the bracket's scroll area, which it
+  also counts towards. So once the bracket was ever wider (a font still
+  loading, a long name, a rotation), the layer held that width and left blank
+  space past the Final. It's now sized to the lines themselves
+  (`src/hooks/useConnectorLines.js`), on both the Champions League and World
+  Cup brackets.
 - **Knockout bracket outline before the knockouts.** During the league phase
   the Champions League page now shows the knockout tree's outline at the top,
   joined up with lines and with a note that it fills in after the league phase

@@ -133,7 +133,7 @@ export default function MatchList({
             aria-haspopup="dialog"
             aria-label={club ? `Filtering by ${club.name}. Change club` : 'Filter by club'}
           >
-            {club ? <Crest club={club} className="ml-country-crest" /> : <span className="ml-country-flag">⭐</span>}
+            {club ? <Crest club={club} className="ml-country-crest" /> : <img className="ucl-logo ucl-logo-sm" src="icon.svg" alt="" aria-hidden="true" />}
             <span className="ml-country-name">{club ? club.name : 'All Clubs'}</span>
             <span className="ml-country-caret" aria-hidden="true">▾</span>
           </button>

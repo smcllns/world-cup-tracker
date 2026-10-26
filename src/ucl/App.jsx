@@ -130,7 +130,7 @@ export default function App() {
         </div>
         <div className="title-block">
           <h1>
-            <span className="trophy">⭐</span> {SEASON.name}
+            <img className="ucl-logo" src="icon.svg" alt="" aria-hidden="true" /> {SEASON.name}
           </h1>
           <p className="subtitle">
             {SEASON.label} · 36 clubs · shown in{' '}

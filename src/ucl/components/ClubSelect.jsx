@@ -22,7 +22,7 @@ export default function ClubSelect({ clubs, selected, onSelect, onClose }) {
             className={`cs-item cs-item-all${selected == null ? ' active' : ''}`}
             onClick={() => choose(null)}
           >
-            <span className="cs-flag">⭐</span>
+            <img className="ucl-logo ucl-logo-sm" src="icon.svg" alt="" aria-hidden="true" />
             <span className="cs-name">All clubs</span>
           </button>
           {clubs.map((c) => (

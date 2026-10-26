@@ -5,6 +5,10 @@ calendar day; bullet points capture every change made that day (features, fixes,
 data/source updates, deployment). Newest day on top.
 
 ## 2026-10-26
+- **World Cup header on phones.** The light/dark button now stays small in
+  the top-right corner instead of taking its own centred row under the title,
+  as on the Champions League page (the rule now lives in the shared
+  stylesheet). The title scales to stay on one line beside it.
 - **Fix: blank space after the bracket on phones.** The layer that draws the
   bracket's connector lines was sized to the bracket's scroll area, which it
   also counts towards. So once the bracket was ever wider (a font still

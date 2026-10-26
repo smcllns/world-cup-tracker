@@ -129,6 +129,12 @@
   border: 1px dashed var(--border);
   cursor: default;
 }
+.ucl-ko-note {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
 .ucl-tbd-note {
   margin: 0;
   text-align: center;

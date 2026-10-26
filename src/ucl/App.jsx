@@ -151,14 +151,10 @@ export default function App() {
         </div>
       </header>
 
-      {ties.size > 0 && (
-        <>
-          <section className="bracket-view">
-            <Knockout ties={[...ties.values()]} tz={tz} hideScores={hideScores} />
-          </section>
-          <hr className="section-rule" />
-        </>
-      )}
+      <section className="bracket-view">
+        <Knockout ties={[...ties.values()]} tz={tz} hideScores={hideScores} />
+      </section>
+      <hr className="section-rule" />
 
       <section ref={listRef} className="list-view">
         <MatchList

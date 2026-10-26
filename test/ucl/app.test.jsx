@@ -44,8 +44,9 @@ describe('UCL App', () => {
     expect(screen.getByText('Loading fixtures…')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: /Liverpool versus/ })).toBeInTheDocument()
     expect(datesOf(fetch)).toContain('202609')
-    // No knockout fixtures yet, so no knockout section.
-    expect(screen.queryByText('Round of 16')).not.toBeInTheDocument()
+    // No knockout fixtures yet: the bracket's outline shows what's coming.
+    expect(screen.getByText(/Knockout bracket: fills in after the league phase/)).toBeInTheDocument()
+    expect(document.querySelectorAll('.ucl-placeholder')).toHaveLength(23)
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Timezone' }), { target: { value: 'Asia/Tokyo' } })
     expect(window.location.search).toBe('?tz=Asia%2FTokyo')

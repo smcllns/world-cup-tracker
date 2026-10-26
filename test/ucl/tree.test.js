@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { layoutBracket, slotId, SLOTS } from '../../src/ucl/utils/tree.js'
+import { layoutBracket, skeletonBracket, slotId, SLOTS } from '../../src/ucl/utils/tree.js'
 import { buildTies } from '../../src/ucl/utils/rounds.js'
 import { tagged } from './fixtures.js'
 
@@ -106,6 +106,25 @@ describe('layoutBracket — drawn from BRACKET', () => {
     const out = layoutBracket(tiesOf(REAL), swapped)
     const placed = Object.values(out.slots).flat().filter((s) => s.tie).length
     expect(placed).toBe(8 + 8 + 4 + 2 + 1)
+  })
+})
+
+describe('skeletonBracket', () => {
+  const sk = skeletonBracket()
+
+  it('outlines every slot by league position, joined up to the final', () => {
+    expect(sk.skeleton).toBe(true)
+    for (const [stage, n] of Object.entries(SLOTS)) {
+      expect(sk.slots[stage]).toHaveLength(n)
+      expect(sk.slots[stage].every((s) => s.show === 'placeholder' && !s.tie)).toBe(true)
+    }
+    expect(sk.slots.R16.map((s) => s.labels[0])).toEqual([
+      '1st/2nd', '7th/8th', '3rd/4th', '5th/6th', '1st/2nd', '7th/8th', '3rd/4th', '5th/6th',
+    ])
+    expect(sk.slots.PO[1].labels).toEqual(['9th/10th', '23rd/24th'])
+    expect(sk.edges).toHaveLength(8 + 4 + 2 + 1)
+    expect(sk.edges).toContainEqual({ parent: 'ucl-R16-1', children: ['ucl-PO-1'] })
+    expect(sk.edges).toContainEqual({ parent: 'ucl-QF-0', children: ['ucl-R16-0', 'ucl-R16-1'] })
   })
 })
 

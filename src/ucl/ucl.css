@@ -121,6 +121,14 @@
 .ucl-knockout .bx-meta { gap: 2px; }
 .ucl-winner .bx-team { font-weight: 800; }
 .ucl-out { opacity: 0.5; }
+/* A slot whose feeders are known but whose fixture isn't in the feed yet. */
+.bx-match.ucl-placeholder,
+.bx-col-final .bx-match.ucl-placeholder {
+  background: transparent;
+  box-shadow: none;
+  border: 1px dashed var(--border);
+  cursor: default;
+}
 .ucl-tbd-note {
   margin: 0;
   text-align: center;

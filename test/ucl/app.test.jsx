@@ -138,6 +138,7 @@ describe('UCL App', () => {
   it('toggles and remembers the theme', async () => {
     serve({})
     render(<App />)
+    await screen.findByText('No upcoming matches.')
     const btn = screen.getByRole('button', { name: 'Toggle theme' })
     expect(btn).toHaveTextContent('🌞')
     fireEvent.click(btn)
@@ -148,12 +149,13 @@ describe('UCL App', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('survives storage being unavailable', () => {
+  it('survives storage being unavailable', async () => {
     serve({})
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('denied')
     })
     render(<App />)
+    await screen.findByText('No upcoming matches.')
     fireEvent.click(screen.getByRole('button', { name: 'Toggle theme' }))
     expect(document.documentElement.dataset.theme).toBe('light')
     spy.mockRestore()

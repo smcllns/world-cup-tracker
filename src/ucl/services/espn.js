@@ -47,6 +47,16 @@ function club(team) {
 
 const OFF = /POSTPONED|CANCELED|CANCELLED|ABANDONED|SUSPENDED/
 
+// ESPN's round, from the event's season slug -> our stage keys.
+const STAGE_BY_SLUG = {
+  'league-phase': 'League',
+  'knockout-round-playoffs': 'PO',
+  'round-of-16': 'R16',
+  quarterfinals: 'QF',
+  semifinals: 'SF',
+  final: 'Final',
+}
+
 // One ESPN event -> one match, home side as t1 (UEFA lists the home club first).
 // Returns null for anything that isn't a two-club fixture.
 export function parseEvent(ev) {
@@ -76,6 +86,7 @@ export function parseEvent(ev) {
     goals: { t1: events.goals.home, t2: events.goals.away },
     cards: { t1: events.cards.home, t2: events.cards.away },
     subs: { t1: events.subs.home, t2: events.subs.away },
+    espnStage: STAGE_BY_SLUG[ev.season?.slug] || null,
     venue: venue?.fullName
       ? { name: venue.fullName, city: venue.address?.city || '', country: venue.address?.country || '' }
       : null,

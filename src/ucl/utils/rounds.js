@@ -1,8 +1,9 @@
 // Stage, matchday and leg for each match, and two-legged knockout ties.
 //
-// ESPN's feed doesn't reliably say which round a fixture belongs to, so we
-// place each match on UEFA's calendar (data/season.js) by its kickoff date, then
-// pair a knockout round's two meetings of the same clubs into a tie: the
+// Each match's round comes from ESPN's season slug where the feed has one, and
+// otherwise from UEFA's calendar (data/season.js), by kickoff date; matchdays
+// always come from the calendar. A knockout round's two meetings of the same
+// clubs are then paired into a tie: the
 // earlier one is the 1st leg, and the aggregate decides who goes through (no
 // away-goals rule; a level aggregate goes to extra time and penalties in the
 // 2nd leg). The Final is a single match, kept as a one-leg tie.
@@ -46,8 +47,8 @@ export function tagMatches(matches) {
   const tagged = matches
     .map((m) => {
       const r = roundFor(m.ko)
-      const out = { ...m, stage: r?.stage || 'League' }
-      if (out.stage === 'League') out.matchday = r?.matchday
+      const out = { ...m, stage: m.espnStage || r?.stage || 'League' }
+      if (out.stage === 'League') out.matchday = r?.stage === 'League' ? r.matchday : undefined
       else out.tieKey = tieKey(out)
       return out
     })

@@ -38,15 +38,19 @@ A sister app for the 2026/27 UEFA Champions League, at its own URL with its own
 manifest and icon, so it installs as a separate home-screen app. Same layout and
 controls: every match by day in your timezone (Upcoming / Played), **club crests**,
 live scores and clock, a club filter, spoiler mode, a match detail view with goals
-and cards, the 36-club **league-phase table**, and the **knockout ties** (with
-aggregates) once the draw puts them in the feed.
+and cards, the 36-club **league-phase table**, and a **knockout tree** (play-offs
+to the final, with aggregates and connector lines) once the draw puts knockout
+fixtures in the feed.
 
 Fixtures and scores come live from ESPN's public scoreboard. The static data is
 UEFA's calendar in `src/ucl/data/season.js` (which round each date belongs to)
 and the clubs' SVG crests in `public/ucl/crests/`, sourced from
 [FootyLogos](https://www.footylogos.com/competition/uefa-champions-league) and
 mapped to ESPN's clubs in `src/ucl/data/crests.js`. For a new season, update the
-calendar, add any new clubs to the crest map and run `npm run ucl:crests`. Source
+calendar, add any new clubs to the crest map and run `npm run ucl:crests`. After
+UEFA's round-of-16 draw, list the bracket order in `src/ucl/data/bracket.js` so the
+tree shows the path to the final ahead of the games; without it, the tree links each
+round to the one before as fixtures arrive. Source
 lives in `src/ucl/`; the page entry is `ucl/index.html`.
 
 ## Develop
